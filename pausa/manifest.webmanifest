@@ -1,0 +1,14 @@
+{
+  "name": "Pausa",
+  "short_name": "Pausa",
+  "description": "Registro de antojos, herramientas para el impulso y la ansiedad, y patrones propios.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F1F4F3",
+  "theme_color": "#2E6A64",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

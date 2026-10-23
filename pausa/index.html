@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2E6A64">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pausa">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Pausa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<style>
+/* Layout: una sola columna calma (máx. 560px), acciones grandes arriba, navegación inferior fija con el pulgar */
+:root{
+  --bg:#F1F4F3; --surface:#FFFFFF; --surface-2:#E6ECEA; --fg:#1B2421; --muted:#5A6964; --line:#D2DBD8;
+  --accent:#2E6A64; --accent-fg:#FFFFFF; --accent-soft:#D9E9E5; --warn:#8A5512; --warn-soft:#F4E7D2;
+  --f-display:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:16px; --nav-h:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#19221F; --surface-2:#222D2A; --fg:#E3EBE8; --muted:#9AAAA5; --line:#2D3A36;
+  --accent:#86BFB6; --accent-fg:#0D1714; --accent-soft:#1F3532; --warn:#E3AE6C; --warn-soft:#332818; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#19221F; --surface-2:#222D2A; --fg:#E3EBE8; --muted:#9AAAA5; --line:#2D3A36;
+  --accent:#86BFB6; --accent-fg:#0D1714; --accent-soft:#1F3532; --warn:#E3AE6C; --warn-soft:#332818; color-scheme:dark}
+
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#app{padding-block:20px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:18px}
+
+h1,h2,h3{font-family:var(--f-display);font-weight:500;text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:2rem;line-height:1.1}
+h2{font-size:1.35rem;line-height:1.2}
+h3{font-size:1.1rem;line-height:1.25}
+p{margin:0}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+.num{font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:12px}
+.stack-s{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grow{flex:1;min-width:0}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.note{border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:var(--surface-2)}
+.note.warn{background:var(--warn-soft);color:var(--fg)}
+.note.warn .eyebrow{color:var(--warn)}
+.note.accent{background:var(--accent-soft)}
+
+.btn{min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.soft{background:var(--accent-soft);border-color:transparent;color:var(--fg)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--accent);min-height:44px;padding:0 10px}
+.btn.block{width:100%}
+.btn.sm{min-height:40px;padding:0 14px;font-size:.9rem;border-radius:12px}
+.btn:disabled{opacity:.5}
+.link{background:none;border:0;padding:4px 0;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+.hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{grid-column:1/-1;min-height:96px;border-radius:20px;font-size:1.3rem;font-family:var(--f-display);font-weight:500;flex-direction:column;gap:2px}
+.big small{font-family:var(--f-body);font-size:.85rem;font-weight:400;opacity:.85}
+.mid{min-height:64px;flex-direction:column;gap:0}
+.mid small{font-weight:400;font-size:.8rem;color:var(--muted)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.scale{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.scale.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.scale .chip{padding:0;border-radius:10px;justify-content:center;font-variant-numeric:tabular-nums}
+.scale.five .chip{font-size:.8rem;line-height:1.1;padding:4px 2px;min-height:52px;text-align:center}
+.scale-l{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.emo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.emo .chip{flex-direction:column;justify-content:center;border-radius:14px;min-height:74px;padding:6px 2px;font-size:.85rem;gap:4px}
+.ico{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.field{display:flex;flex-direction:column;gap:8px}
+.field > label,.lab{font-weight:700}
+input[type=text],input[type=tel],textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;min-height:48px}
+textarea{min-height:84px;resize:vertical}
+.hint{font-size:.85rem;color:var(--muted)}
+
+.list{display:flex;flex-direction:column}
+.li{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:0;padding-top:0}
+.li .t{font-variant-numeric:tabular-nums;color:var(--muted);min-width:44px;font-size:.9rem}
+.pill{display:inline-flex;align-items:center;border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:700;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.check{display:flex;gap:12px;align-items:flex-start}
+.check input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+.check.done .txt{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.toolrow{display:flex;gap:14px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer}
+.toolrow .ico{color:var(--accent)}
+
+/* Navegación */
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav .wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));height:var(--nav-h)}
+#nav button{background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.72rem;color:var(--muted);cursor:pointer}
+#nav button[aria-current="page"]{color:var(--accent);font-weight:700}
+
+/* Pantallas superpuestas */
+#ov{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#ov .wrap{padding-block:calc(env(safe-area-inset-top,0px) + 14px) calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;flex-direction:column;gap:18px;min-height:100%;box-sizing:border-box}
+.ovhead{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.steps{display:flex;gap:5px}
+.steps i{width:22px;height:4px;border-radius:2px;background:var(--line)}
+.steps i.on{background:var(--accent)}
+.x{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.footer-btns{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:8px}
+
+/* Respiración */
+.breath{display:flex;flex-direction:column;align-items:center;gap:14px;padding:12px 0}
+.breath-box{width:220px;height:220px;max-width:100%;display:grid;place-items:center;position:relative}
+.breath-c{width:220px;height:220px;max-width:100%;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent);transform:scale(.45);transition:transform 4s ease-in-out}
+.breath-c.in{transform:scale(1)}
+.breath-l{position:absolute;font-family:var(--f-display);font-size:1.4rem}
+@media (prefers-reduced-motion: reduce){.breath-c{transition:none!important;transform:scale(.8)}.breath-c.in{transform:scale(.8)}}
+
+.surf canvas{width:100%;height:180px;display:block;border-radius:12px;background:var(--surface)}
+.big-num{font-family:var(--f-display);font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
+
+/* Gráficos */
+.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .lbl{fill:var(--muted);font-size:10px;font-family:var(--f-body)}
+.chart .bar{fill:var(--surface-2)}
+.chart .bar.hot{fill:var(--accent)}
+.chart .l1{fill:none;stroke:var(--accent);stroke-width:2.5}
+.chart .l2{fill:none;stroke:var(--muted);stroke-width:2;stroke-dasharray:4 4}
+.chart .area{fill:var(--accent-soft);opacity:.8}
+.chart .dot1{fill:var(--accent)}
+.chart .dot2{fill:var(--muted)}
+.chart .end{fill:var(--surface);stroke:var(--accent);stroke-width:2.5}
+.hbar{display:grid;grid-template-columns:minmax(0,7.5rem) minmax(0,1fr) 2.6rem;gap:10px;align-items:center;font-size:.9rem}
+.hbar .track{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.hbar .fill{height:100%;background:var(--accent);border-radius:5px}
+.hbar .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:3px;border-radius:2px;background:var(--accent);display:inline-block}
+.sw.d{background:repeating-linear-gradient(90deg,var(--muted) 0 4px,transparent 4px 8px)}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tile .val{font-family:var(--f-display);font-size:1.9rem;line-height:1;font-variant-numeric:tabular-nums}
+.tile .cmp{font-size:.82rem;color:var(--muted)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;border-radius:999px;padding:8px 14px;cursor:pointer;color:var(--muted);font-weight:700;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg)}
+details.lib{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0 16px}
+details.lib summary{cursor:pointer;padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:center}
+details.lib summary::-webkit-details-marker{display:none}
+details.lib[open] summary{border-bottom:1px solid var(--line)}
+details.lib .body{padding:12px 0 16px;display:flex;flex-direction:column;gap:8px}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th{color:var(--muted);font-weight:700}
+.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.8rem}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;max-width:min(90vw,480px);box-sizing:border-box;font-size:.95rem}
+</style>
+
+<main id="app" class="wrap" aria-live="polite"></main>
+<nav id="nav" aria-label="Secciones"><div class="wrap">
+  <button data-a="tab" data-v="inicio"><svg class="ico" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Inicio</button>
+  <button data-a="tab" data-v="ansiedad"><svg class="ico" viewBox="0 0 24 24"><path d="M3 9c3-3 6 3 9 0s6 3 9 0"/><path d="M3 15c3-3 6 3 9 0s6 3 9 0"/></svg>Ansiedad</button>
+  <button data-a="tab" data-v="patrones"><svg class="ico" viewBox="0 0 24 24"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg>Patrones</button>
+  <button data-a="tab" data-v="progreso"><svg class="ico" viewBox="0 0 24 24"><path d="M3 17l5-5 4 3 8-8"/><path d="M15 7h5v5"/></svg>Progreso</button>
+  <button data-a="tab" data-v="mas"><svg class="ico" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"/></svg>Más</button>
+</div></nav>
+<div id="ov" hidden></div>
+<div id="toast" role="status" hidden></div>
+
+<script>
+(()=>{
+'use strict';
+const KEY='pausa.v1';
+const IS_PWA=!!document.querySelector('link[rel="manifest"]');
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const pad=n=>String(n).padStart(2,'0');
+const DAY=864e5;
+const dk=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const DOW=['dom','lun','mar','mié','jue','vie','sáb'];
+const MON=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const dShort=t=>{const d=new Date(t);return d.getDate()+'/'+(d.getMonth()+1)};
+const avg=a=>{a=a.filter(x=>x!=null&&!isNaN(x));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
+const r1=x=>x==null?'–':(Math.round(x*10)/10).toLocaleString('es-AR');
+const pct=x=>x==null?'–':Math.round(x*100)+' %';
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+/* ---------- Catálogos ---------- */
+const I={
+  estres:'<path d="M3 13l4-7 4 12 4-12 4 7h2"/>',
+  aburrimiento:'<circle cx="12" cy="12" r="9"/><path d="M9 15h6"/><path d="M9 10h.01M15 10h.01"/>',
+  cansancio:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  ansiedad:'<path d="M3 9c3-3 6 3 9 0s6 3 9 0"/><path d="M3 15c3-3 6 3 9 0s6 3 9 0"/>',
+  tristeza:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>',
+  festejo:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  otro:'<circle cx="6" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18" cy="12" r="1.2"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/>',
+  wind:'<path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h16a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
+  hand:'<path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V5.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L3 14a1.6 1.6 0 0 1 2.6-1.8L8 15"/>',
+  note:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h4"/>',
+  stop:'<path d="M8 3h8l5 5v8l-5 5H8l-5-5V8z"/><path d="M9 12h6"/>',
+  distance:'<path d="M4 12h16"/><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/>',
+  wave:'<path d="M2 16c4 0 4-10 8-10s4 10 8 10 2-3 4-3"/>'
+};
+const ic=(k,cls='ico')=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[k]||''}</svg>`;
+const EMO=[['estres','Estrés'],['aburrimiento','Aburrimiento'],['cansancio','Cansancio'],['ansiedad','Ansiedad'],['tristeza','Tristeza'],['festejo','Festejo'],['otro','Otro']];
+const SIT=[['trabajo','Trabajo'],['casa','Casa'],['auto','Auto'],['reunion','Reunión'],['despues','Después de comer'],['noche','Noche']];
+const HUNGER=[['fisica','Física'],['emocional','Emocional'],['nose','No sé']];
+const DID=[['sos','Usé el SOS'],['herramienta','Usé otra herramienta'],['espere','Lo dejé pasar'],['alternativa','Hice otra cosa'],['dulce','Comí dulce'],['nada','Todavía nada']];
+const CONTROL=[['no','No'],['algo','Un poco'],['si','Sí']];
+const MANAGED=['sos','herramienta','espere','alternativa'];
+const L=arr=>Object.fromEntries(arr);
+const EMO_L=L(EMO),SIT_L=L(SIT),HUNGER_L=L(HUNGER),DID_L=L(DID);
+const TOOLS={
+  resp:{n:'Respiración lenta',e:'DBT · respiración pautada',d:'1 min',i:'wind'},
+  ground:{n:'Grounding 5-4-3-2-1',e:'Anclaje sensorial (TCC / DBT)',d:'2 min',i:'hand'},
+  tcc:{n:'Registro de pensamiento',e:'TCC · Judith Beck',d:'3 min',i:'note'},
+  stop:{n:'STOP y TIPP',e:'DBT · regulación emocional',d:'1–3 min',i:'stop'},
+  defu:{n:'Defusión',e:'ACT',d:'1 min',i:'distance'},
+  surf:{n:'Urge surfing',e:'ACT / mindfulness (Brewer)',d:'1–3 min',i:'wave'}
+};
+const TOOL_L={sos:'SOS antojo',alt:'Acción alternativa',ninguna:'Ninguna',...Object.fromEntries(Object.entries(TOOLS).map(([k,v])=>[k,v.n]))};
+const DEFAULT_ALTS=['Tomar un vaso de agua o un té','Salir a caminar 5 minutos','Escribirle a alguien','Lavarme la cara con agua fría','Escuchar una canción entera','Ordenar algo chico durante 5 minutos'];
+const BODY=['Tensión','Calor','Vacío en el estómago','Inquietud','Salivación','Presión en el pecho','Nada en particular'];
+
+/* ---------- Estado y guardado local ---------- */
+const blank=()=>({v:1,log:[],checkins:{},plans:{},settings:{alts:DEFAULT_ALTS.slice(),contact:{name:'',phone:'',note:''},remind:false},demo:false});
+function load(){try{const s=localStorage.getItem(KEY);if(s){const o=JSON.parse(s);if(o&&o.v===1&&Array.isArray(o.log))return o}}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let S=load();
+if(!S){S=blank();seedDemo();save()}
+
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function seedDemo(){
+  const R=rng(7),pick=a=>a[Math.floor(R()*a.length)];
+  const today=new Date();today.setHours(0,0,0,0);
+  for(let d=27;d>=0;d--){
+    const w=Math.floor((27-d)/7),day=new Date(today);day.setDate(day.getDate()-d);
+    const sleep=1+Math.floor(R()*5),stress=1+Math.floor(R()*5),energy=clamp(sleep+Math.round(R()*2-1),1,5);
+    const ck={demo:true};
+    if(R()<.85)ck.m={sleep,stress,energy};
+    const n=1+Math.floor(R()*3)+(sleep<=2?1:0);
+    for(let i=0;i<n;i++){
+      const r=R();let h;
+      if(r<.55)h=17+Math.floor(R()*2);else if(r<.75)h=22+Math.floor(R()*2);else h=10+Math.floor(R()*6);
+      const t=new Date(day);t.setHours(h,Math.floor(R()*60));
+      if(t.getTime()>Date.now())continue;
+      const int=clamp(Math.round(8.2-w*.9+(sleep<=2?1:0)+(stress>=4?.6:0)+(R()*2-1)),2,10);
+      const emo=h>=17&&h<20?(R()<.62?'cansancio':'estres'):h>=22?(R()<.5?'aburrimiento':'ansiedad'):pick(['estres','aburrimiento','festejo','tristeza','otro']);
+      const sit=h>=22?'noche':h>=17&&h<20?pick(['trabajo','auto','casa']):pick(['trabajo','reunion','despues']);
+      const hunger=R()<.7?'emocional':(R()<.5?'fisica':'nose');
+      const did=R()<.3+w*.14?pick(['sos','sos','espere','alternativa','herramienta']):(R()<.6?'dulce':'nada');
+      const e={id:uid(),kind:'antojo',ts:t.getTime(),int,emo,sit,hunger,did,demo:true};
+      if(did==='dulce')e.control=R()<.3?'algo':'no';
+      S.log.push(e);
+      if(did==='sos')S.log.push({id:uid(),kind:'sos',ts:t.getTime()+4*6e4,before:int,after:Math.max(1,int-2-Math.floor(R()*3)),alt:pick(DEFAULT_ALTS),demo:true});
+    }
+    if(R()<.4){const t=new Date(day);t.setHours(9+Math.floor(R()*9),Math.floor(R()*60));if(t.getTime()<Date.now()){const b=clamp(5+Math.floor(R()*4),1,10);const tool=pick(['resp','resp','ground','tcc','stop','defu']);S.log.push({id:uid(),kind:'ansiedad',ts:t.getTime(),tool,before:b,after:clamp(b-1-Math.floor(R()*3)-(tool==='resp'?1:0),1,10),demo:true})}}
+    if(d>0&&R()<.85)ck.n={anx:clamp(Math.round(7-w*.8+R()*2-1),1,10),regular:R()<.45+w*.15,tool:pick(['sos','resp','surf','ground','alt'])};
+    if(ck.m||ck.n)S.checkins[dk(day)]=ck;
+  }
+  [25,22,16].forEach(d=>{const t=new Date(today);t.setDate(t.getDate()-d);t.setHours(22,40);S.log.push({id:uid(),kind:'antojo',ts:t.getTime(),int:9,emo:'ansiedad',sit:'noche',hunger:'emocional',did:'dulce',control:'si',demo:true})});
+  S.log.sort((a,b)=>a.ts-b.ts);
+  S.demo=true;
+}
+function clearDemo(){
+  S.log=S.log.filter(e=>!e.demo);
+  Object.keys(S.checkins).forEach(k=>{if(S.checkins[k].demo)delete S.checkins[k]});
+  S.plans={};S.demo=false;save();
+}
+
+/* ---------- Análisis ---------- */
+const since=days=>{const from=Date.now()-days*DAY;return S.log.filter(e=>e.ts>=from)};
+function tally(key,arr){const m={};arr.forEach(e=>{const k=e[key];if(!k)return;(m[k]=m[k]||{n:0,sum:0});m[k].n++;m[k].sum+=e.int||0});return Object.entries(m).map(([k,v])=>({k,n:v.n,avg:v.sum/v.n})).sort((a,b)=>b.n-a.n)}
+function analyze(days){
+  const Lg=since(days),cr=Lg.filter(e=>e.kind==='antojo');
+  const a={n:cr.length,cr};
+  const hours=Array.from({length:24},()=>({n:0,sum:0}));
+  cr.forEach(e=>{const h=new Date(e.ts).getHours();hours[h].n++;hours[h].sum+=e.int||0});
+  a.hours=hours;
+  let best=0,bh=null;
+  for(let h=0;h<24;h++){const s=hours[h].sum+hours[(h+1)%24].sum;if(s>best){best=s;bh=h}}
+  a.peak=bh==null?null:{start:bh,end:(bh+2)%24};
+  a.emo=tally('emo',cr);a.sit=tally('sit',cr);
+  if(a.peak){const inP=cr.filter(e=>{const h=new Date(e.ts).getHours();return h===a.peak.start||h===(a.peak.start+1)%24});a.peakN=inP.length;a.peakEmo=tally('emo',inP)[0]}
+  a.avgInt=avg(cr.map(e=>e.int));
+  const withH=cr.filter(e=>e.hunger);
+  a.emotional=withH.length?withH.filter(e=>e.hunger==='emocional').length/withH.length:null;
+  const byDay={};cr.forEach(e=>{(byDay[dk(e.ts)]=byDay[dk(e.ts)]||[]).push(e.int)});
+  const rel=(f)=>{const lo=[],hi=[];Object.entries(byDay).forEach(([d,ints])=>{const m=S.checkins[d]&&S.checkins[d].m;if(!m)return;const v=avg(ints);if(m[f]<=2)lo.push(v);else if(m[f]>=4)hi.push(v)});return{lo:avg(lo),hi:avg(hi),nlo:lo.length,nhi:hi.length}};
+  a.sleep=rel('sleep');a.stress=rel('stress');
+  const sos=Lg.filter(e=>e.kind==='sos'&&e.before!=null&&e.after!=null);
+  a.sos={n:sos.length,drop:avg(sos.map(e=>e.before-e.after))};
+  const tl={};Lg.filter(e=>e.kind==='ansiedad'&&e.before!=null&&e.after!=null).forEach(e=>{(tl[e.tool]=tl[e.tool]||[]).push(e.before-e.after)});
+  a.anxTools=Object.entries(tl).map(([k,v])=>({k,n:v.length,drop:avg(v)})).sort((x,y)=>y.drop-x.drop);
+  a.outcomes=tally('did',cr);
+  a.managed=cr.length?cr.filter(e=>MANAGED.includes(e.did)).length/cr.length:null;
+  return a;
+}
+function insights(a){
+  const o=[];
+  if(a.peak&&a.peakN>=3){let s=`Tus antojos más fuertes ocurren entre las ${a.peak.start} y las ${a.peak.end} h`;if(a.peakEmo&&a.peakEmo.n>=2)s+=`, sobre todo con ${EMO_L[a.peakEmo.k].toLowerCase()}`;o.push(s+'.')}
+  if(a.emo[0])o.push(`La emoción más frecuente es ${EMO_L[a.emo[0].k].toLowerCase()} (${pct(a.emo[0].n/a.n)} de los antojos, intensidad media ${r1(a.emo[0].avg)}).`);
+  if(a.sit[0])o.push(`Situación más frecuente: ${SIT_L[a.sit[0].k].toLowerCase()} (${pct(a.sit[0].n/a.n)}).`);
+  if(a.sleep.nlo>=2&&a.sleep.nhi>=2&&a.sleep.lo-a.sleep.hi>=.6)o.push(`Los días que dormís mal, el antojo promedio es ${r1(a.sleep.lo)}; cuando dormís bien, ${r1(a.sleep.hi)}.`);
+  if(a.stress.nlo>=2&&a.stress.nhi>=2&&a.stress.hi-a.stress.lo>=.6)o.push(`Con estrés alto a la mañana, el antojo promedio del día es ${r1(a.stress.hi)}; con estrés bajo, ${r1(a.stress.lo)}.`);
+  if(a.emotional!=null&&a.emotional>=.5)o.push(`Marcaste ${pct(a.emotional)} de los antojos como hambre emocional.`);
+  if(a.sos.n>=2)o.push(`El SOS te bajó el antojo ${r1(a.sos.drop)} puntos en promedio (${a.sos.n} usos).`);
+  if(a.anxTools[0]&&a.anxTools[0].n>=2)o.push(`Para la ansiedad, lo que más te sirvió fue ${TOOL_L[a.anxTools[0].k].toLowerCase()}: −${r1(a.anxTools[0].drop)} en promedio.`);
+  return o;
+}
+function weekStart(t){const d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime()}
+function weeks(nw){
+  const cur=weekStart(Date.now()),out=[];
+  for(let i=nw-1;i>=0;i--){
+    const s0=new Date(cur);s0.setDate(s0.getDate()-7*i);const s=s0.getTime();const e0=new Date(s);e0.setDate(e0.getDate()+7);const e=e0.getTime();
+    const cr=S.log.filter(x=>x.kind==='antojo'&&x.ts>=s&&x.ts<e);
+    const ck=Object.entries(S.checkins).filter(([d])=>{const t=new Date(d+'T12:00').getTime();return t>=s&&t<e}).map(([,v])=>v).filter(c=>c.n);
+    out.push({s,n:cr.length,int:avg(cr.map(x=>x.int)),managed:cr.length?cr.filter(x=>MANAGED.includes(x.did)).length/cr.length:null,anx:avg(ck.map(c=>c.n.anx)),regular:ck.filter(c=>c.n.regular).length,nights:ck.length,episodes:cr.filter(x=>x.control==='si').length});
+  }
+  return out;
+}
+function safety(){
+  const ep=since(14).filter(e=>e.kind==='antojo'&&e.control==='si').length;
+  const w=weeks(4).map(x=>x.episodes);
+  const rising=w[1]<w[2]&&w[2]<w[3]&&w[3]>=2;
+  const ints=weeks(4).map(x=>x.int);
+  const worse=ints.every(x=>x!=null)&&ints[1]<ints[2]&&ints[2]<ints[3]&&ints[3]-ints[1]>=1.5;
+  return ep>=4||rising||worse?{ep,rising,worse}:null;
+}
+function riskWindow(){const a=analyze(14);if(a.n<5||!a.peak||a.peakN<3)return null;let m=a.peak.start*60-30;if(m<0)m+=1440;return{h:Math.floor(m/60),m:m%60,peak:a.peak}}
+
+/* ---------- Plan diario ---------- */
+function buildPlan(){
+  const a=analyze(14),items=[],today=S.checkins[dk(Date.now())],m=today&&today.m;
+  const rw=riskWindow();
+  if(rw)items.push({id:'peak',t:`A las ${pad(rw.h)}:${pad(rw.m)}, antes de tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h), hacé 1 minuto de respiración lenta.`,tool:'resp',src:'Tu patrón · respiración pautada (DBT)'});
+  if(m&&(m.sleep<=2||m.energy<=2))items.push({id:'tired',t:`Hoy arrancás con poco descanso y el cansancio suele subir el antojo. Dejá a mano tu acción alternativa: «${S.settings.alts[0]||'tomar agua'}».`,src:'Tu check-in de hoy'});
+  else if(m&&m.stress>=4)items.push({id:'stress',t:'Esperás un día con estrés alto. Agendá una pausa STOP a media mañana y otra a media tarde.',tool:'stop',src:'DBT'});
+  const nights=Object.entries(S.checkins).filter(([d,c])=>c.n&&new Date(d+'T12:00').getTime()>Date.now()-7*DAY).map(([,c])=>c.n);
+  const reg=nights.length?nights.filter(n=>n.regular).length/nights.length:0;
+  if(nights.length<3||reg<.7)items.push({id:'regular',t:'Comé en horarios regulares: desayuno, almuerzo, merienda y cena, sin saltear ninguna. Pasar muchas horas sin comer suele subir el antojo más tarde.',src:'TCC para comer sin control (Fairburn)'});
+  if(items.length<3&&a.sos.n>=2&&a.sos.drop>=1)items.push({id:'sos',t:`El SOS te baja el antojo ${r1(a.sos.drop)} puntos en promedio. Si aparece uno fuerte, empezá por ahí antes de decidir.`,tool:'sosx',src:'Tus datos'});
+  if(items.length<3)items.push({id:'curious',t:'Cuando aparezca un antojo, antes de decidir nada, preguntate qué sentís en el cuerpo y dónde.',src:'Curiosidad (Brewer)'});
+  return items.slice(0,3);
+}
+function getPlan(rebuild){
+  const k=dk(Date.now());const old=S.plans[k];
+  if(old&&!rebuild)return old;
+  const p={items:buildPlan(),done:old?old.done:[]};
+  S.plans={[k]:p};save();return p;
+}
+
+/* ---------- Componentes ---------- */
+let FORM={};
+function chips(g,opts,{multi=false,icons=false,cls='chips'}={}){
+  const cur=FORM[g];
+  return `<div class="${cls}" data-group="${g}" ${multi?'data-multi="1"':''} role="group">${opts.map(([v,l])=>{const on=multi?(cur||[]).includes(v):cur===v;return `<button type="button" class="chip" data-a="chip" data-g="${g}" data-v="${esc(v)}" aria-pressed="${on}">${icons?ic(v):''}<span>${esc(l)}</span></button>`}).join('')}</div>`;
+}
+function scale(g,lo='leve',hi='máximo'){
+  const o=[];for(let i=1;i<=10;i++)o.push([String(i),String(i)]);
+  return `<div class="stack-s">${chips(g,o,{cls:'scale'})}<div class="scale-l"><span>1 · ${lo}</span><span>10 · ${hi}</span></div></div>`;
+}
+function scale5(g,labels){return chips(g,labels.map((l,i)=>[String(i+1),l]),{cls:'scale five'})}
+function bindChipChange(fn){FORM.__on=fn}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},2800)}
+
+let timers=[],raf=null;
+function clearTimers(){timers.forEach(clearTimeout);timers=[];if(raf)cancelAnimationFrame(raf);raf=null}
+const later=(fn,ms)=>{timers.push(setTimeout(fn,ms))};
+
+function breathHTML(cycles=6){return `<div class="breath"><div class="breath-box"><div class="breath-c"></div><div class="breath-l">Listo para empezar</div></div><p class="muted num breath-n">${cycles} ciclos · 4 s inhalar, 6 s exhalar</p><button class="btn soft breath-go" data-a="breathGo" data-v="${cycles}">Empezar</button></div>`}
+function startBreath(cycles,onDone){
+  clearTimers();
+  const c=$('#ov .breath-c'),l=$('#ov .breath-l'),n=$('#ov .breath-n'),b=$('#ov .breath-go');
+  if(!c)return;b.hidden=true;let k=0;
+  const inh=()=>{c.style.transitionDuration='4s';c.classList.add('in');l.textContent='Inhalá';later(exh,4000)};
+  const exh=()=>{c.style.transitionDuration='6s';c.classList.remove('in');l.textContent='Exhalá despacio';later(()=>{k++;n.textContent=`${k} de ${cycles}`;if(k>=cycles){l.textContent='Listo';onDone&&onDone()}else inh()},6000)};
+  n.textContent=`0 de ${cycles}`;inh();
+}
+function surfHTML(){
+  const d=FORM.dur||'90';
+  return `<div class="surf stack"><canvas id="surfc" aria-label="Curva de un impulso que sube y baja"></canvas>
+  <p class="surf-msg" style="min-height:3em">Elegí la duración y empezá. Vas a mirar el impulso como una ola: sube, llega a un techo y baja.</p>
+  <div class="row between"><div class="seg" role="group">${[['60','1 min'],['90','1,5 min'],['180','3 min']].map(([v,l])=>`<button data-a="surfDur" data-v="${v}" aria-pressed="${d===v}">${l}</button>`).join('')}</div><span class="num muted surf-t"></span></div>
+  <button class="btn soft surf-go" data-a="surfGo">Empezar</button>
+  <p class="hint">La curva es una guía de cómo suele comportarse un impulso, no una medición tuya.</p></div>`;
+}
+function tok(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function drawSurf(p){
+  const cv=$('#surfc');if(!cv)return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  x.fillStyle=tok('--surface');x.fillRect(0,0,W,H);
+  const f=u=>{const b=u<.35?(1-Math.cos(Math.PI*u/.35))/2:(1+Math.cos(Math.PI*(u-.35)/.65))/2;return .12+.82*b+.025*Math.sin(u*38)};
+  const px=u=>12+u*(W-24),py=v=>H-14-v*(H-34);
+  x.strokeStyle=tok('--line');x.lineWidth=1;x.beginPath();x.moveTo(12,py(0));x.lineTo(W-12,py(0));x.stroke();
+  x.strokeStyle=tok('--line');x.lineWidth=2;x.beginPath();for(let i=0;i<=200;i++){const u=i/200;i?x.lineTo(px(u),py(f(u))):x.moveTo(px(u),py(f(u)))}x.stroke();
+  if(p>0){
+    x.fillStyle=tok('--accent-soft');x.beginPath();x.moveTo(px(0),py(0));for(let i=0;i<=200*p;i++){const u=i/200;x.lineTo(px(u),py(f(u)))}x.lineTo(px(p),py(0));x.closePath();x.fill();
+    x.strokeStyle=tok('--accent');x.lineWidth=3;x.beginPath();for(let i=0;i<=200*p;i++){const u=i/200;i?x.lineTo(px(u),py(f(u))):x.moveTo(px(u),py(f(u)))}x.stroke();
+    x.fillStyle=tok('--accent');x.beginPath();x.arc(px(p),py(f(p)),7,0,Math.PI*2);x.fill();
+  }
+  x.fillStyle=tok('--muted');x.font='11px '+tok('--f-body');x.fillText('pico',px(.35)-12,14);
+}
+function startSurf(onDone){
+  clearTimers();const dur=+(FORM.dur||90)*1000,t0=performance.now();
+  const msg=$('#ov .surf-msg'),tl=$('#ov .surf-t'),go=$('#ov .surf-go');go.hidden=true;
+  const step=now=>{const p=Math.min(1,(now-t0)/dur);drawSurf(p);
+    msg.textContent=p<.25?'Está subiendo. No tenés que hacer nada con él, solo mirarlo.':p<.45?'Está cerca del techo. Ningún impulso sube para siempre.':p<.8?'Empieza a bajar. Notá cómo cambia en el cuerpo.':'La ola se va. Seguí respirando un momento más.';
+    tl.textContent=Math.ceil((1-p)*dur/1000)+' s';
+    if(p<1)raf=requestAnimationFrame(step);else{raf=null;msg.textContent='La ola pasó. Podés repetirla si el impulso sigue alto.';tl.textContent='';onDone&&onDone()}};
+  raf=requestAnimationFrame(step);
+}
+
+/* ---------- Gráficos SVG ---------- */
+function hourChart(a){
+  const W=336,H=150,b=a.hours,max=Math.max(1,...b.map(h=>h.n)),bw=(W-20)/24;
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Antojos por hora del día">`;
+  [0,.5,1].forEach(g=>{const y=12+(1-g)*(H-40);s+=`<line class="grid" x1="10" x2="${W-10}" y1="${y}" y2="${y}"/>`});
+  b.forEach((h,i)=>{const bh=(h.n/max)*(H-40),x=10+i*bw+1.5,y=12+(H-40)-bh;const hot=a.peak&&(i===a.peak.start||i===(a.peak.start+1)%24);s+=`<rect class="bar ${hot?'hot':''}" x="${x}" y="${y}" width="${bw-3}" height="${Math.max(bh,h.n?2:0)}" rx="2"><title>${i} h: ${h.n} antojos</title></rect>`});
+  [0,6,12,18].forEach(hh=>{s+=`<text class="lbl" x="${10+hh*bw}" y="${H-10}">${hh} h</text>`});
+  s+=`<text class="lbl" x="${W-10}" y="${H-10}" text-anchor="end">24 h</text><text class="lbl" x="${W-10}" y="10" text-anchor="end">máx. ${max}</text></svg>`;
+  return s;
+}
+function lineChart(ws){
+  const W=336,H=170,X0=26,X1=W-12,Y0=12,Y1=H-28,n=ws.length;
+  const px=i=>X0+(n<2?0:i*(X1-X0)/(n-1)),py=v=>Y1-(v/10)*(Y1-Y0);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Intensidad del antojo y ansiedad por semana">`;
+  [0,5,10].forEach(v=>{s+=`<line class="grid" x1="${X0}" x2="${X1}" y1="${py(v)}" y2="${py(v)}"/><text class="lbl" x="${X0-6}" y="${py(v)+3}" text-anchor="end">${v}</text>`});
+  const path=k=>{let d='',pts=[];ws.forEach((w,i)=>{if(w[k]==null)return;pts.push([px(i),py(w[k])]);d+=(d?'L':'M')+px(i).toFixed(1)+' '+py(w[k]).toFixed(1)});return{d,pts}};
+  const a=path('int'),b=path('anx');
+  if(a.pts.length>1)s+=`<path class="area" d="${a.d}L${a.pts[a.pts.length-1][0]} ${Y1}L${a.pts[0][0]} ${Y1}Z"/>`;
+  if(b.d)s+=`<path class="l2" d="${b.d}"/>`;b.pts.forEach(p=>s+=`<circle class="dot2" cx="${p[0]}" cy="${p[1]}" r="2.5"/>`);
+  if(a.d)s+=`<path class="l1" d="${a.d}"/>`;a.pts.forEach((p,i)=>s+=i===a.pts.length-1?`<circle class="end" cx="${p[0]}" cy="${p[1]}" r="5"/>`:`<circle class="dot1" cx="${p[0]}" cy="${p[1]}" r="3"/>`);
+  ws.forEach((w,i)=>{if(n<=8||i%2===0)s+=`<text class="lbl" x="${px(i)}" y="${H-10}" text-anchor="middle">${dShort(w.s)}</text>`});
+  return s+'</svg>';
+}
+function hbars(rows,labels,total){
+  const max=Math.max(1,...rows.map(r=>r.n));
+  return `<div class="stack-s">${rows.map(r=>`<div class="hbar"><span>${esc(labels[r.k]||r.k)}</span><div class="track"><div class="fill" style="width:${(r.n/max*100).toFixed(1)}%"></div></div><span class="v">${pct(r.n/total)}</span></div>`).join('')}</div>`;
+}
+
+/* ---------- Vistas ---------- */
+let V={tab:'inicio',sub:null,range:28};
+const VIEWS={};
+
+function describe(e){
+  if(e.kind==='antojo'){const bits=[];if(e.emo)bits.push(EMO_L[e.emo]);if(e.sit)bits.push(SIT_L[e.sit]);return `<b>${e.did==='dulce'?'Comí dulce':'Antojo'}</b> <span class="num">${e.int!=null?e.int+'/10':''}</span>${bits.length?' · '+bits.join(' · '):''}${e.did&&e.did!=='dulce'?`<br><span class="muted small">${DID_L[e.did]}</span>`:''}${e.control==='si'?'<br><span class="muted small">Con pérdida de control</span>':''}`}
+  if(e.kind==='sos')return `<b>SOS antojo</b> <span class="num">${e.before} → ${e.after}</span>${e.alt?`<br><span class="muted small">${esc(e.alt)}</span>`:''}`;
+  if(e.kind==='ansiedad')return `<b>${esc(TOOL_L[e.tool]||'Herramienta')}</b> <span class="num muted">ansiedad ${e.before} → ${e.after}</span>`;
+  return '';
+}
+
+VIEWS.inicio=()=>{
+  const now=new Date(),k=dk(now),ck=S.checkins[k]||{},plan=getPlan(),sf=safety(),rw=riskWindow();
+  let risk='';
+  if(rw){const nm=now.getHours()*60+now.getMinutes(),st=rw.h*60+rw.m,en=rw.peak.end*60||1440;if(nm>=st&&nm<en)risk=`<div class="note accent"><p class="eyebrow">Franja de riesgo</p><p>Estás en tu horario de mayor antojo (${rw.peak.start}–${rw.peak.end} h). Una pausa de un minuto ahora suele servir más que esperar a que aparezca.</p><div class="row"><button class="btn sm primary" data-a="tool" data-v="resp">Respirar 1 minuto</button></div></div>`}
+  const today=S.log.filter(e=>dk(e.ts)===k).slice().reverse();
+  const ckRow=(t,done,sum,v)=>`<div class="li"><div class="grow stack-s"><span class="lab">${t}</span><span class="muted small">${done?sum:'Menos de un minuto'}</span></div>${done?`<span class="pill ok">Hecho</span><button class="btn sm ghost" data-a="checkin" data-v="${v}" aria-label="Editar check-in">Editar</button>`:`<button class="btn sm soft" data-a="checkin" data-v="${v}">Hacer</button>`}</div>`;
+  const S5=['muy mal','mal','regular','bien','muy bien'];
+  return `
+  <header class="stack-s"><p class="eyebrow">${DOW[now.getDay()]} ${now.getDate()} de ${MON[now.getMonth()]}</p><h1>Pausa</h1></header>
+  ${S.demo?`<div class="note"><p class="eyebrow">Datos de ejemplo</p><p>Estás viendo 4 semanas de datos inventados para que veas cómo funcionan los patrones y el progreso. Cuando quieras empezar en serio, borralos.</p><div class="row"><button class="btn sm primary" data-a="clearDemo">Empezar con mis datos</button></div></div>`:''}
+  ${sf?`<div class="note warn"><p class="eyebrow">Para tener en cuenta</p><p>${sf.ep>=4?`En las últimas dos semanas registraste ${sf.ep} episodios con pérdida de control.`:'La tendencia de las últimas semanas viene subiendo.'} Esto suele responder bien al trabajo con un profesional en conducta alimentaria (TCC o DBT). No hace falta esperar a que empeore para consultar.</p><div class="row"><button class="btn sm soft" data-a="sub" data-v="apoyo">Ver mi contacto</button></div></div>`:''}
+  ${risk}
+  <section class="hero-actions" aria-label="Acciones rápidas">
+    <button class="btn primary big" data-a="log" data-v="antojo">Tengo un antojo<small>Registrarlo lleva menos de 20 segundos</small></button>
+    <button class="btn mid" data-a="sos"><span>SOS antojo</span><small>Guía de 4 minutos</small></button>
+    <button class="btn mid" data-a="log" data-v="dulce"><span>Comí dulce</span><small>Se registra como dato</small></button>
+  </section>
+  <section class="card"><div class="row between"><h2>Plan de hoy</h2><span class="muted small">${plan.items.length} acciones</span></div>
+    <div class="list">${plan.items.map(it=>{const d=plan.done.includes(it.id);return `<div class="li"><label class="check grow ${d?'done':''}"><input type="checkbox" data-a="planDone" data-v="${it.id}" ${d?'checked':''}><span class="stack-s"><span class="txt">${esc(it.t)}</span><span class="muted small">${esc(it.src)}</span></span></label>${it.tool?`<button class="btn sm ghost" data-a="${it.tool==='sosx'?'sos':'tool'}" data-v="${it.tool}">Abrir</button>`:''}</div>`}).join('')}</div>
+  </section>
+  <section class="card"><h2>Check-in</h2><div class="list">
+    ${ckRow('Mañana',ck.m,ck.m?`Dormiste ${S5[ck.m.sleep-1]} · estrés esperado ${ck.m.stress}/5 · energía ${ck.m.energy}/5`:'','m')}
+    ${ckRow('Noche',ck.n,ck.n?`Ansiedad del día ${ck.n.anx}/10 · ${ck.n.regular?'comidas en horario':'comidas fuera de horario'}`:'','n')}
+  </div></section>
+  <section class="card"><h2>Hoy</h2>${today.length?`<div class="list">${today.slice(0,6).map(e=>`<div class="li"><span class="t">${hm(e.ts)}</span><div class="grow">${describe(e)}</div></div>`).join('')}</div>`:'<p class="muted">Todavía no registraste nada hoy. Cuando aparezca un antojo, tocá «Tengo un antojo».</p>'}</section>
+  <p class="hint">Pausa es una herramienta de autogestión. No reemplaza a un profesional.</p>`;
+};
+
+VIEWS.ansiedad=()=>`
+  <header class="stack-s"><p class="eyebrow">Herramientas a un toque</p><h1>Ansiedad</h1><p class="muted">Antes y después de cada herramienta te pido un número del 1 al 10. Así sabés qué te sirve a vos.</p></header>
+  <div class="stack">${Object.entries(TOOLS).map(([k,t])=>`<button class="toolrow" data-a="tool" data-v="${k}">${ic(t.i)}<span class="grow stack-s"><b>${t.n}</b><span class="muted small">${t.e}</span></span><span class="pill">${t.d}</span></button>`).join('')}</div>`;
+
+VIEWS.patrones=()=>{
+  const a=analyze(V.range),ins=insights(a);
+  const seg=`<div class="seg" role="group" aria-label="Período">${[[7,'7 días'],[28,'4 semanas']].map(([v,l])=>`<button data-a="range" data-v="${v}" aria-pressed="${V.range===v}">${l}</button>`).join('')}</div>`;
+  const head=`<header class="stack"><div class="stack-s"><p class="eyebrow">Detector de patrones</p><h1>Patrones</h1></div>${seg}</header>`;
+  if(a.n<5)return head+`<div class="card"><h2>Faltan datos</h2><p class="muted">Con ${a.n} ${a.n===1?'registro':'registros'} en este período todavía no hay patrones confiables. Hacen falta al menos 5 antojos registrados.</p></div>`;
+  const out=a.outcomes;
+  return head+`
+  <section class="card"><h2>Lo que muestran tus datos</h2><ul class="stack-s" style="margin:0;padding-left:1.1em">${ins.map(s=>`<li>${esc(s)}</li>`).join('')}</ul><p class="hint">${a.n} antojos registrados · intensidad media ${r1(a.avgInt)}</p></section>
+  <section class="card"><div class="stack-s"><h2>Horas de mayor riesgo</h2><p class="muted small">Cantidad de antojos por hora. Resaltada, la franja de 2 h con más intensidad acumulada.</p></div>${hourChart(a)}</section>
+  <section class="card"><h2>Emociones</h2>${hbars(a.emo,EMO_L,a.n)}</section>
+  <section class="card"><h2>Situaciones</h2>${hbars(a.sit,SIT_L,a.n)}</section>
+  <section class="card"><h2>Qué hiciste con el antojo</h2>${hbars(out,DID_L,a.n)}<p class="muted small">Manejados con una herramienta: <b class="num">${pct(a.managed)}</b></p></section>
+  <section class="card"><h2>Qué te baja más</h2>
+    ${a.sos.n||a.anxTools.length?`<div class="tbl"><table><thead><tr><th>Herramienta</th><th>Mide</th><th>Usos</th><th>Baja</th></tr></thead><tbody>
+    ${a.sos.n?`<tr><td>SOS antojo</td><td>antojo</td><td>${a.sos.n}</td><td>−${r1(a.sos.drop)}</td></tr>`:''}
+    ${a.anxTools.map(t=>`<tr><td>${esc(TOOL_L[t.k])}</td><td>ansiedad</td><td>${t.n}</td><td>−${r1(t.drop)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Todavía no usaste herramientas con medición antes y después.</p>'}
+  </section>
+  ${a.sleep.nlo+a.sleep.nhi>=3?`<section class="card"><h2>Sueño y estrés</h2><div class="tbl"><table><thead><tr><th></th><th>Bajo (1–2)</th><th>Alto (4–5)</th></tr></thead><tbody><tr><td>Sueño → antojo medio</td><td>${r1(a.sleep.lo)}</td><td>${r1(a.sleep.hi)}</td></tr><tr><td>Estrés → antojo medio</td><td>${r1(a.stress.lo)}</td><td>${r1(a.stress.hi)}</td></tr></tbody></table></div><p class="hint">Cruza el check-in de la mañana con los antojos de ese día.</p></section>`:''}`;
+};
+
+VIEWS.progreso=()=>{
+  const ws=weeks(8),cur=ws[7],prev=ws[6];
+  const has=ws.filter(w=>w.n>0);
+  const head=`<header class="stack-s"><p class="eyebrow">Semana a semana</p><h1>Progreso</h1><p class="muted">Se muestra la tendencia. Un día difícil no borra nada.</p></header>`;
+  if(has.length<1)return head+`<div class="card"><p class="muted">Cuando tengas registros, acá vas a ver la comparación semanal.</p></div>`;
+  const cmp=(c,p,fmt,better)=>{if(c==null||p==null)return 'Sin dato de la semana anterior';const d=c-p;if(Math.abs(d)<.05)return 'Igual que la semana anterior';return `${d<0?'Bajó':'Subió'} desde ${fmt(p)}${(better==='down'?d<0:d>0)?' · en la dirección buscada':''}`};
+  const first=ws.filter(w=>w.int!=null).slice(0,2),last=ws.filter(w=>w.int!=null).slice(-2);
+  const goal=(k,dir)=>{const f=avg(first.map(w=>w[k])),l=avg(last.map(w=>w[k]));if(f==null||l==null||has.length<4)return null;return dir==='down'?l<f:l>f};
+  const g=[['Intensidad del antojo','int','down'],['Antojos manejados','managed','up'],['Ansiedad','anx','down']].map(([l,k,d])=>[l,goal(k,d)]);
+  return head+`
+  <div class="tiles">
+    <div class="tile"><span class="eyebrow">Intensidad media</span><span class="val">${r1(cur.int)}</span><span class="cmp">${cmp(cur.int,prev.int,r1,'down')}</span></div>
+    <div class="tile"><span class="eyebrow">Manejados</span><span class="val">${pct(cur.managed)}</span><span class="cmp">${cmp(cur.managed,prev.managed,pct,'up')}</span></div>
+    <div class="tile"><span class="eyebrow">Ansiedad media</span><span class="val">${r1(cur.anx)}</span><span class="cmp">${cmp(cur.anx,prev.anx,r1,'down')}</span></div>
+    <div class="tile"><span class="eyebrow">Días en horario</span><span class="val">${cur.regular}<span class="muted" style="font-size:1rem"> / ${cur.nights}</span></span><span class="cmp">De las noches con check-in</span></div>
+  </div>
+  <p class="hint">Esta semana va de lunes a hoy.</p>
+  <section class="card"><div class="stack-s"><h2>Últimas 8 semanas</h2><div class="legend"><span><i class="sw"></i>Intensidad del antojo</span><span><i class="sw d"></i>Ansiedad del día</span></div></div>${lineChart(ws)}</section>
+  <section class="card"><h2>Criterio de éxito</h2><p class="muted small">Lo que buscás ver en 4 a 8 semanas, comparando tus primeras semanas con las últimas.</p>
+    <div class="list">${g.map(([l,ok])=>`<div class="li"><span class="grow">${l}</span><span class="pill ${ok?'ok':''}">${ok==null?'Faltan semanas':ok?'En la dirección buscada':'Todavía no'}</span></div>`).join('')}</div></section>
+  <section class="card"><h2>Detalle semanal</h2><div class="tbl"><table><thead><tr><th>Semana</th><th>Antojos</th><th>Intens.</th><th>Manejados</th><th>Ansiedad</th><th>Pérdida de control</th></tr></thead><tbody>
+    ${ws.slice().reverse().map(w=>`<tr><td>${dShort(w.s)}</td><td>${w.n}</td><td>${r1(w.int)}</td><td>${pct(w.managed)}</td><td>${r1(w.anx)}</td><td>${w.episodes}</td></tr>`).join('')}
+  </tbody></table></div><p class="hint">Los episodios de pérdida de control se cuentan como un dato más para entender el patrón.</p></section>`;
+};
+
+const LIB_T=[
+  ['Urge surfing','ACT · prevención de recaídas','Mirar el impulso como una ola: sube, llega a un techo y baja, aunque no hagas nada. No se trata de pelearlo ni de obedecerlo, sino de dejarlo pasar observándolo.','Cuando el antojo aparece de golpe y sentís urgencia.'],
+  ['Curiosidad sobre el antojo','Mindfulness · Judson Brewer','En lugar de resistir, preguntarte con interés: ¿qué siento en el cuerpo?, ¿dónde?, ¿cambia? También sirve notar qué sentís de verdad al comer (y unos minutos después) comparado con lo que esperabas.','En el momento del antojo y, a veces, mientras comés.'],
+  ['Respiración con exhalación larga','DBT · respiración pautada (TIPP)','Inhalar unos 4 segundos y exhalar unos 6. Exhalar más largo que inhalar ayuda a bajar la activación del cuerpo.','Ansiedad alta, antes de una franja de riesgo.'],
+  ['Grounding 5-4-3-2-1','Anclaje sensorial (TCC / DBT)','Nombrar 5 cosas que ves, 4 que podés tocar, 3 que oís, 2 que olés y 1 que saboreás. Lleva la atención al presente.','Cuando la cabeza se acelera o sentís desborde.'],
+  ['Registro de pensamiento','TCC · Judith Beck','Escribir la situación, el pensamiento automático («me lo merezco», «ya arruiné el día»), la evidencia a favor y en contra, y una respuesta más útil.','Cuando un pensamiento te empuja a comer.'],
+  ['STOP y TIPP','DBT · Linehan; aplicado a comer emocional por Debra Safer','STOP: pará, tomá distancia, observá y seguí con atención. TIPP: temperatura, movimiento intenso breve, respiración pautada y relajación muscular, para bajar la emoción rápido.','Emoción muy intensa o impulso de actuar ya.'],
+  ['Defusión','ACT','Tomar distancia del pensamiento sin discutirlo: «estoy teniendo el pensamiento de que…». El pensamiento sigue ahí, pero manda menos.','Pensamientos repetitivos o que se sienten como órdenes.'],
+  ['Alimentación regular','TCC mejorada (CBT-E) · Christopher Fairburn','Comer en horarios previsibles, tres comidas y una o dos colaciones planificadas, sin saltear. Es uno de los primeros pasos del tratamiento para comer sin control.','Todos los días; sobre todo después de un episodio.'],
+  ['Conciencia del hambre y la saciedad','MB-EAT · Jean Kristeller','Notar el nivel de hambre antes de comer, comer más despacio y prestar atención al sabor, que suele ser más intenso en los primeros bocados.','Comidas y momentos en que comés dulce.']
+];
+const LIB_P=[
+  ['Judson Brewer','Psiquiatra, Brown University','The Craving Mind · Unwinding Anxiety (Ansiedad: cómo desaprenderla)'],
+  ['Christopher Fairburn','Psiquiatra, Oxford','La superación de los atracones de comida'],
+  ['Judith Beck','Beck Institute','The Beck Diet Solution (Piensa delgado)'],
+  ['Debra Safer','Stanford','The DBT Solution for Emotional Eating'],
+  ['Jean Kristeller','Creadora de MB-EAT','The Joy of Half a Cookie'],
+  ['Susan Albers','Cleveland Clinic','50 maneras de calmarte sin comer'],
+  ['Anna Lembke','Psiquiatra, Stanford','Generación dopamina'],
+  ['Jessie Inchauspé','Divulgadora','La revolución de la glucosa']
+];
+
+VIEWS.mas=()=>{
+  if(V.sub)return SUBS[V.sub]();
+  const row=(v,t,d)=>`<button class="toolrow" data-a="sub" data-v="${v}"><span class="grow stack-s"><b>${t}</b><span class="muted small">${d}</span></span><span aria-hidden="true">›</span></button>`;
+  return `<header class="stack-s"><p class="eyebrow">Configuración y lectura</p><h1>Más</h1></header>
+  <div class="stack">
+    ${row('biblioteca','Biblioteca','Técnicas y referentes, en fichas breves')}
+    ${row('apoyo','Red de apoyo',S.settings.contact.name?esc(S.settings.contact.name):'Guardá a tu psicólogo o persona de confianza')}
+    ${row('alts','Mis acciones alternativas',S.settings.alts.length+' acciones para el SOS')}
+    ${row('recordatorios','Recordatorios','Avisos antes de tu franja de riesgo')}
+    ${row('datos','Respaldo de datos','Exportar e importar en JSON o CSV')}
+    ${row('acerca','Sobre Pausa','Qué hace y qué no hace')}
+  </div>`;
+};
+const back=`<button class="link" data-a="sub" data-v="">‹ Más</button>`;
+const SUBS={
+  biblioteca:()=>`${back}<header class="stack-s"><h1>Biblioteca</h1><p class="muted">Cada ficha dice de qué enfoque viene.</p></header>
+    <h2>Técnicas</h2><div class="stack">${LIB_T.map(([t,e,c,w])=>`<details class="lib"><summary><span class="stack-s"><b>${t}</b><span class="muted small">${e}</span></span><span aria-hidden="true">+</span></summary><div class="body"><p>${c}</p><p class="small"><b>Cuándo:</b> ${w}</p></div></details>`).join('')}</div>
+    <h2>Referentes</h2><div class="card"><div class="list">${LIB_P.map(([n,r,b])=>`<div class="li"><div class="stack-s"><b>${n}</b><span class="muted small">${r}</span><span class="small"><i>${b}</i></span></div></div>`).join('')}</div></div>
+    <p class="hint">Para trabajarlo con alguien: buscá un psicólogo con formación en TCC o DBT para conducta alimentaria.</p>`,
+  apoyo:()=>{const c=S.settings.contact;return `${back}<header class="stack-s"><h1>Red de apoyo</h1><p class="muted">Lo vas a tener a mano desde el SOS.</p></header>
+    <form class="card" id="f-contact"><div class="field"><label for="c-name">Nombre</label><input type="text" id="c-name" value="${esc(c.name)}" placeholder="Ej.: Lic. Martínez, o mi hermana"></div>
+    <div class="field"><label for="c-phone">Teléfono</label><input type="tel" id="c-phone" value="${esc(c.phone)}" placeholder="+54 9 11 …"></div>
+    <div class="field"><label for="c-note">Nota para vos</label><textarea id="c-note" placeholder="Ej.: puedo escribirle aunque sea tarde">${esc(c.note)}</textarea></div>
+    <button class="btn primary" type="submit">Guardar</button></form>
+    <div class="note"><p class="eyebrow">Cuándo consultar</p><p>Si los episodios con pérdida de control son frecuentes, si la tendencia empeora o si el tema te ocupa mucho espacio mental, lo que más resultado suele dar es trabajar con un profesional en conducta alimentaria. Pausa te lo va a señalar cuando tus datos lo muestren.</p></div>`},
+  alts:()=>`${back}<header class="stack-s"><h1>Acciones alternativas</h1><p class="muted">Cosas concretas que podés hacer en lugar de comer cuando el antojo es emocional. Las ves al final del SOS.</p></header>
+    <div class="card"><div class="list">${S.settings.alts.map((a,i)=>`<div class="li"><span class="grow">${esc(a)}</span><button class="btn sm ghost" data-a="altDel" data-v="${i}">Quitar</button></div>`).join('')||'<p class="muted">No tenés acciones guardadas.</p>'}</div>
+    <form id="f-alt" class="row"><input type="text" id="alt-in" class="grow" placeholder="Nueva acción" style="flex:1;min-width:0"><button class="btn soft" type="submit">Agregar</button></form></div>`,
+  recordatorios:()=>{const rw=riskWindow();const perm=('Notification' in window)?Notification.permission:'unsupported';return `${back}<header class="stack-s"><h1>Recordatorios</h1></header>
+    <div class="card"><p>${rw?`Tu franja de mayor antojo es <b>${rw.peak.start}–${rw.peak.end} h</b>. El recordatorio sugerido es a las <b class="num">${pad(rw.h)}:${pad(rw.m)}</b>.`:'Todavía no hay una franja de riesgo clara. Hacen falta al menos 5 antojos en las últimas dos semanas.'}</p>
+    <p class="muted small">Dentro de la app, durante esa franja, el inicio te muestra un aviso con una pausa de un minuto.</p>
+    ${IS_PWA?`<button class="btn soft" data-a="notify">${perm==='granted'?'Notificaciones activadas':'Activar notificaciones'}</button><p class="hint">En esta versión de prueba el aviso llega si la app está abierta o en segundo plano. Los avisos con la app cerrada llegan en la versión final.</p>`:`<p class="hint">Las notificaciones del sistema funcionan cuando instalás Pausa en el celular (ver instrucciones en la carpeta del proyecto). En esta vista previa se usa solo el aviso dentro de la app.</p>`}</div>`},
+  datos:()=>`${back}<header class="stack-s"><h1>Respaldo de datos</h1><p class="muted">Tus datos se guardan solo en este dispositivo. Exportalos de vez en cuando.</p></header>
+    <div class="card"><div class="row"><button class="btn soft" data-a="exp" data-v="json">Exportar JSON</button><button class="btn soft" data-a="exp" data-v="csv">Exportar CSV</button></div>
+    <div id="exp-box" hidden class="stack"><textarea id="exp-txt" class="mono" readonly style="min-height:160px"></textarea><div class="row"><button class="btn sm primary" data-a="copy">Copiar</button>${IS_PWA?'<button class="btn sm soft" data-a="download">Descargar archivo</button>':''}</div></div></div>
+    <div class="card"><h2>Importar</h2><p class="muted small">Reemplaza los datos actuales por los del respaldo (JSON).</p>
+    <input type="file" id="imp-file" accept=".json,application/json"><textarea id="imp-txt" class="mono" placeholder="…o pegá acá el contenido del JSON"></textarea>
+    <button class="btn soft" data-a="imp" id="imp-btn">Importar</button></div>
+    <div class="card"><h2>Borrar todo</h2><p class="muted small">Elimina todos los registros de este dispositivo.</p><button class="btn" data-a="wipe" id="wipe-btn">Borrar todos mis datos</button></div>`,
+  acerca:()=>`${back}<header class="stack-s"><h1>Sobre Pausa</h1></header>
+    <div class="card"><p>Pausa te ayuda a registrar antojos sin juicio, ver tus patrones, manejar el impulso en el momento y bajar la ansiedad. Se basa en TCC (Fairburn, Beck), DBT (Safer), ACT, MB-EAT (Kristeller) y el trabajo de Judson Brewer.</p>
+    <p><b>Lo que no hace:</b> no cuenta calorías, no fija metas de peso, no propone dietas ni ayunos, y nunca sugiere compensar después de comer.</p>
+    <p class="muted small">Es una herramienta de autogestión. No reemplaza a un profesional.</p><p class="muted small">Prototipo v0.1</p></div>`
+};
+
+function render(scrollTop){
+  $('#app').innerHTML=VIEWS[V.tab]();
+  $$('#nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===V.tab?'page':'false'));
+  if(scrollTop)window.scrollTo(0,0);
+  bindForms();
+}
+function bindForms(){
+  const fc=$('#f-contact');if(fc)fc.onsubmit=e=>{e.preventDefault();S.settings.contact={name:$('#c-name').value.trim(),phone:$('#c-phone').value.trim(),note:$('#c-note').value.trim()};save();toast('Contacto guardado')};
+  const fa=$('#f-alt');if(fa)fa.onsubmit=e=>{e.preventDefault();const v=$('#alt-in').value.trim();if(!v)return;S.settings.alts.push(v);save();render()};
+  const ff=$('#imp-file');if(ff)ff.onchange=()=>{const f=ff.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#imp-txt').value=r.result};r.readAsText(f)};
+}
+
+/* ---------- Pantallas superpuestas ---------- */
+const ov=$('#ov');
+function openOv(html){ov.innerHTML=`<div class="wrap">${html}</div>`;ov.hidden=false;document.body.style.overflow='hidden';ov.scrollTop=0}
+function closeOv(){clearTimers();ov.hidden=true;ov.innerHTML='';document.body.style.overflow='';FORM={};render()}
+const head=(title,extra='')=>`<div class="ovhead"><div class="stack-s grow">${extra}<h2>${title}</h2></div><button class="x" data-a="close" aria-label="Cerrar">${ic('x')}</button></div>`;
+
+/* Registro rápido */
+function openLog(mode){
+  FORM={mode,did:mode==='dulce'?'dulce':null};
+  openOv(`${head(mode==='dulce'?'Comí dulce':'Tengo un antojo',`<span class="eyebrow">Registro · ${hm(Date.now())}</span>`)}
+  <div class="field"><span class="lab">${mode==='dulce'?'¿Qué tan fuerte era el antojo?':'Intensidad del antojo'}</span>${scale('int')}</div>
+  <div class="field"><span class="lab">Emoción</span>${chips('emo',EMO,{icons:true,cls:'emo'})}</div>
+  <div class="field"><span class="lab">Situación</span>${chips('sit',SIT)}</div>
+  <div class="field"><span class="lab">Hambre</span>${chips('hunger',HUNGER)}<p class="hint">Física: aparece de a poco y cualquier comida te sirve. Emocional: aparece de golpe y pide algo puntual.</p></div>
+  ${mode==='antojo'?`<div class="field"><span class="lab">Qué hice</span>${chips('did',DID)}</div>`:''}
+  <div class="field" id="ctl-row" ${mode==='dulce'?'':'hidden'}><span class="lab">¿Sentiste pérdida de control?</span>${chips('control',CONTROL)}</div>
+  <div class="footer-btns">${mode==='antojo'?'<button class="btn primary block" data-a="saveLog" data-v="sos">Guardar y abrir SOS</button><button class="btn block" data-a="saveLog">Guardar</button>':'<button class="btn primary block" data-a="saveLog">Guardar</button>'}</div>`);
+  bindChipChange(g=>{if(g==='did'){$('#ctl-row').hidden=FORM.did!=='dulce'}});
+}
+function saveLog(next){
+  if(!FORM.int){toast('Elegí la intensidad del 1 al 10');return}
+  const did=next==='sos'?'sos':FORM.did||(FORM.mode==='dulce'?'dulce':'nada');
+  const e={id:uid(),kind:'antojo',ts:Date.now(),int:+FORM.int,emo:FORM.emo||null,sit:FORM.sit||null,hunger:FORM.hunger||null,did};
+  if(did==='dulce'&&FORM.control)e.control=FORM.control;
+  S.log.push(e);save();
+  if(next==='sos'){openSOS(e);return}
+  if(did==='dulce'){openOv(`${head('Quedó registrado')}<div class="note"><p>Es un dato más para entender tu patrón.</p><p>Tu próxima comida va en su horario de siempre, sin saltearla ni compensar. Saltear comidas suele aumentar el antojo después.</p></div>
+    <div class="card"><p class="lab">Si querés, en un rato podés probar:</p><div class="stack"><button class="btn soft" data-a="tool" data-v="defu">Defusión: «ya arruiné el día»</button><button class="btn soft" data-a="tool" data-v="resp">Respiración lenta</button></div></div>
+    <div class="footer-btns"><button class="btn primary block" data-a="close">Volver al inicio</button></div>`);return}
+  toast('Antojo registrado');closeOv();
+}
+
+/* SOS antojo */
+let SOS=null;
+const SOS_STEPS=6;
+function openSOS(linked){
+  clearTimers();
+  FORM={before:linked?String(linked.int):null,dur:'90',body:[],alt:null,after:null};
+  SOS={step:0,linked:linked||null,what:''};renderSOS();
+}
+function renderSOS(){
+  clearTimers();
+  const s=SOS.step,dots=`<div class="steps" aria-label="Paso ${s+1} de ${SOS_STEPS}">${Array.from({length:SOS_STEPS},(_,i)=>`<i class="${i<=s?'on':''}"></i>`).join('')}</div>`;
+  const c=S.settings.contact;
+  const contact=c.phone||c.name?`<button class="btn sm ghost" data-a="sosContact">${ic('phone')} ${esc(c.name||'Mi contacto')}</button>`:'';
+  const titles=['Nombrá el antojo','Surfeá el impulso','Respirá','Mirá con curiosidad','Elegí una acción','¿Cómo está el antojo ahora?','Resultado'];
+  let body='',next='Seguir';
+  if(s===0)body=`<p class="muted">Ponerle nombre ya crea un poco de distancia.</p><div class="field"><label for="sos-what">Tengo ganas de…</label><input type="text" id="sos-what" value="${esc(SOS.what)}" placeholder="Ej.: algo de chocolate"></div><div class="field"><span class="lab">¿Qué tan fuerte es ahora?</span>${scale('before')}</div>`;
+  if(s===1)body=surfHTML();
+  if(s===2)body=`<p class="muted">Exhalá más largo de lo que inhalás.</p>${breathHTML(6)}`;
+  if(s===3)body=`<p>¿Qué sentís en el cuerpo ahora?</p><p class="muted">Mirá la sensación con interés: dónde está, si tiene borde, si cambia mientras la mirás.</p>${chips('body',BODY.map(b=>[b,b]),{multi:true})}`;
+  if(s===4)body=`<p class="muted">Elegí algo de tu lista para hacer ahora mismo.</p>${chips('alt',S.settings.alts.map(a=>[a,a]))}`;
+  if(s===5){body=scale('after');next='Guardar'}
+  if(s===6){const b=+FORM.before,a=+FORM.after,d=b-a;
+    body=`<div class="card"><div class="row" style="gap:24px"><div class="stack-s"><span class="eyebrow">Al empezar</span><span class="big-num">${b}</span></div><span class="muted" aria-hidden="true">→</span><div class="stack-s"><span class="eyebrow">Ahora</span><span class="big-num">${a}</span></div></div>
+    <p>${d>0?`Bajó ${d} ${d===1?'punto':'puntos'}.`:d===0?'Quedó igual. A veces el impulso necesita más tiempo.':'Subió un poco. Pasa, y también es información útil.'}</p></div>
+    ${FORM.alt?`<p>Tu acción ahora: <b>${esc(FORM.alt)}</b>.</p>`:''}${a>=6?'<p class="muted">Si sigue alto, podés repetir el surf o escribirle a tu contacto.</p>':''}`}
+  openOv(`${head(titles[s],s<6?dots:'')}${contact?`<div>${contact}</div>`:''}<div id="sos-body" class="stack">${body}</div>
+  <div class="footer-btns">${s<6?`<button class="btn primary block" data-a="sosNext">${next}</button>${s>=1&&s<=4?'<button class="btn ghost" data-a="sosNext" data-v="skip">Saltear este paso</button>':''}`:`<button class="btn primary block" data-a="close">Volver al inicio</button><button class="btn block" data-a="sosAgain">Repetir el surf</button>`}</div>`);
+  if(s===1)requestAnimationFrame(()=>drawSurf(0));
+}
+function sosNext(skip){
+  const s=SOS.step;
+  if(s===0){SOS.what=$('#sos-what').value.trim();if(!FORM.before){toast('Elegí qué tan fuerte es, del 1 al 10');return}}
+  if(s===5){if(!FORM.after){toast('Elegí un número del 1 al 10');return}
+    S.log.push({id:uid(),kind:'sos',ts:Date.now(),before:+FORM.before,after:+FORM.after,alt:FORM.alt||null,what:SOS.what||null,body:FORM.body});
+    if(SOS.linked){const e=S.log.find(x=>x.id===SOS.linked.id);if(e)e.did='sos'}
+    else S.log.push({id:uid(),kind:'antojo',ts:Date.now()-1,int:+FORM.before,did:'sos'});
+    save();
+  }
+  SOS.step++;renderSOS();
+}
+
+/* Herramientas de ansiedad */
+let TS=null;
+const GROUND=[[5,'cosas que ves'],[4,'cosas que podés tocar'],[3,'sonidos que oís'],[2,'olores que notás'],[1,'sabor en la boca']];
+const BECK=[['Me lo merezco','Me merezco sentirme bien, y hay otras formas de cuidarme que no me dejan peor después.'],['Ya arruiné el día','Un momento no define el día. La próxima comida puede ser en su horario, como siempre.'],['Uno solo no hace nada','Puede que no, pero cada vez que espero un poco practico que el impulso pasa.'],['No lo aguanto','Es incómodo, no insoportable. Los antojos suben y bajan.']];
+function openTool(id){FORM={};TS={id,step:'pre',g:0};renderTool()}
+function renderTool(){
+  clearTimers();
+  const t=TOOLS[TS.id];let body='',foot='';
+  if(TS.step==='pre'){body=`<p class="muted">${t.e}</p><div class="field"><span class="lab">¿Cuánta ansiedad sentís ahora?</span>${scale('before','poca','muchísima')}</div>`;foot=`<button class="btn primary block" data-a="toolNext">Empezar</button>`}
+  if(TS.step==='run'){
+    if(TS.id==='resp')body=breathHTML(6);
+    if(TS.id==='surf')body=`<p class="muted">Sirve para un antojo o para la ansiedad. Ubicá la sensación en el cuerpo y miralá como una ola.</p>${surfHTML()}`;
+    if(TS.id==='ground'){const g=GROUND[TS.g];body=TS.g<GROUND.length?`<div class="card" style="align-items:flex-start"><span class="big-num">${g[0]}</span><p style="font-size:1.2rem">Nombrá ${g[0]} ${g[1]}.</p><p class="muted small">Decilas en voz baja o en tu cabeza, sin apurarte.</p></div><button class="btn soft" data-a="groundNext">Listo, siguiente</button>`:`<div class="note accent"><p>Terminaste los cinco pasos.</p></div>`}
+    if(TS.id==='tcc')body=`<div class="field"><label for="t-sit">Situación</label><textarea id="t-sit" placeholder="¿Dónde estabas, qué pasaba?"></textarea></div>
+      <div class="field"><label for="t-th">Pensamiento automático</label><textarea id="t-th" placeholder="¿Qué te dijiste?"></textarea><div class="chips">${BECK.map((b,i)=>`<button class="chip" type="button" data-a="beck" data-v="${i}">«${b[0]}»</button>`).join('')}</div></div>
+      <div class="field"><label for="t-ev">Evidencia a favor y en contra</label><textarea id="t-ev" placeholder="¿Qué datos lo apoyan? ¿Cuáles no?"></textarea></div>
+      <div class="field"><label for="t-alt">Respuesta alternativa</label><textarea id="t-alt" placeholder="¿Qué le dirías a alguien que querés en tu lugar?"></textarea></div>`;
+    if(TS.id==='stop')body=`<div class="card"><h3>STOP</h3><div class="list">${[['Pará','Quedate quieto un momento. No actúes todavía.'],['Tomá distancia','Respirá una vez profundo. Alejate un paso, también físicamente.'],['Observá','¿Qué pasa afuera? ¿Qué sentís y pensás adentro?'],['Seguí con atención','Preguntate qué te conviene ahora, y hacé eso.']].map(([a,b])=>`<div class="li"><b style="min-width:7.5rem">${a}</b><span class="grow">${b}</span></div>`).join('')}</div></div>
+      <div class="card"><h3>TIPP, para bajar rápido una emoción muy intensa</h3><div class="list">${[['Temperatura','Agua fría en la cara unos 30 segundos. Si tenés un problema cardíaco, consultalo antes.'],['Intensidad','1 o 2 minutos de movimiento intenso: subir escaleras, saltar. Es para regular la emoción.'],['Respiración pautada','Exhalación más larga que la inhalación.'],['Relajación muscular','Tensá un grupo de músculos 5 segundos y soltalo mientras exhalás.']].map(([a,b])=>`<div class="li"><b style="min-width:7.5rem">${a}</b><span class="grow">${b}</span></div>`).join('')}</div></div>`;
+    if(TS.id==='defu')body=`<div class="field"><label for="d-in">Escribí el pensamiento tal como aparece</label><input type="text" id="d-in" placeholder="Ej.: no voy a poder parar"></div><button class="btn soft" data-a="defuGo">Mirarlo con distancia</button><div id="d-out" class="stack"></div>`;
+    foot=`<button class="btn primary block" data-a="toolNext">Terminé</button>`;
+  }
+  if(TS.step==='post'){body=`<div class="field"><span class="lab">¿Y ahora, cuánta ansiedad sentís?</span>${scale('after','poca','muchísima')}</div>`;foot=`<button class="btn primary block" data-a="toolNext">Guardar</button>`}
+  if(TS.step==='done'){const b=+FORM.before,a=+FORM.after,d=b-a;body=`<div class="card"><div class="row" style="gap:24px"><div class="stack-s"><span class="eyebrow">Antes</span><span class="big-num">${b}</span></div><span class="muted" aria-hidden="true">→</span><div class="stack-s"><span class="eyebrow">Después</span><span class="big-num">${a}</span></div></div><p>${d>0?`Bajó ${d} ${d===1?'punto':'puntos'}.`:d===0?'Quedó igual. Podés probar otra herramienta.':'Subió un poco. Probá otra herramienta o escribile a tu contacto.'}</p></div>`;foot=`<button class="btn primary block" data-a="close">Listo</button><button class="btn block" data-a="tab" data-v="ansiedad">Ver otras herramientas</button>`}
+  openOv(`${head(t.n,`<span class="eyebrow">${TS.step==='pre'?'Antes':TS.step==='post'?'Después':TS.step==='done'?'Resultado':'Herramienta'}</span>`)}<div class="stack">${body}</div><div class="footer-btns">${foot}</div>`);
+  if(TS.step==='run'&&TS.id==='surf')requestAnimationFrame(()=>drawSurf(0));
+}
+function toolNext(){
+  if(TS.step==='pre'){if(!FORM.before){toast('Elegí un número del 1 al 10');return}TS.step='run'}
+  else if(TS.step==='run'){if(TS.id==='tcc')TS.data={sit:$('#t-sit').value.trim(),thought:$('#t-th').value.trim(),evid:$('#t-ev').value.trim(),alt:$('#t-alt').value.trim()};TS.step='post'}
+  else if(TS.step==='post'){if(!FORM.after){toast('Elegí un número del 1 al 10');return}const e={id:uid(),kind:'ansiedad',ts:Date.now(),tool:TS.id,before:+FORM.before,after:+FORM.after};if(TS.data)e.data=TS.data;S.log.push(e);save();TS.step='done'}
+  renderTool();
+}
+
+/* Check-in */
+function openCheckin(which){
+  const c=S.checkins[dk(Date.now())]||{};const prev=c[which]||{};
+  FORM=which==='m'?{sleep:prev.sleep&&String(prev.sleep),stress:prev.stress&&String(prev.stress),energy:prev.energy&&String(prev.energy)}:{anx:prev.anx&&String(prev.anx),regular:prev.regular==null?null:prev.regular?'si':'no',tool:prev.tool};
+  FORM.which=which;
+  openOv(which==='m'?`${head('Check-in de la mañana','<span class="eyebrow">Menos de un minuto</span>')}
+    <div class="field"><span class="lab">¿Cómo dormiste?</span>${scale5('sleep',['Muy mal','Mal','Regular','Bien','Muy bien'])}</div>
+    <div class="field"><span class="lab">Estrés que esperás para hoy</span>${scale5('stress',['Muy bajo','Bajo','Medio','Alto','Muy alto'])}</div>
+    <div class="field"><span class="lab">Energía</span>${scale5('energy',['Muy baja','Baja','Media','Alta','Muy alta'])}</div>
+    <div class="footer-btns"><button class="btn primary block" data-a="saveCheckin">Guardar</button></div>`
+  :`${head('Check-in de la noche','<span class="eyebrow">Menos de un minuto</span>')}
+    <div class="field"><span class="lab">Ansiedad del día</span>${scale('anx','poca','muchísima')}</div>
+    <div class="field"><span class="lab">¿Comiste en horarios regulares?</span>${chips('regular',[['si','Sí'],['no','No']])}<p class="hint">Solo horarios. No hace falta pensar en cantidades.</p></div>
+    <div class="field"><span class="lab">¿Qué herramienta te funcionó hoy?</span>${chips('tool',[['sos','SOS antojo'],['surf','Urge surfing'],['resp','Respiración'],['ground','Grounding'],['tcc','Registro de pensamiento'],['stop','STOP / TIPP'],['defu','Defusión'],['alt','Acción alternativa'],['ninguna','Ninguna']])}</div>
+    <div class="footer-btns"><button class="btn primary block" data-a="saveCheckin">Guardar</button></div>`);
+}
+function saveCheckin(){
+  const k=dk(Date.now()),c=S.checkins[k]||{};
+  if(FORM.which==='m'){if(!FORM.sleep||!FORM.stress||!FORM.energy){toast('Completá las tres respuestas');return}c.m={sleep:+FORM.sleep,stress:+FORM.stress,energy:+FORM.energy}}
+  else{if(!FORM.anx||!FORM.regular){toast('Completá ansiedad y horarios');return}c.n={anx:+FORM.anx,regular:FORM.regular==='si',tool:FORM.tool||null}}
+  delete c.demo;S.checkins[k]=c;save();
+  if(FORM.which==='m')getPlan(true);
+  toast(FORM.which==='m'?'Check-in guardado. El plan de hoy se actualizó.':'Check-in guardado');closeOv();
+}
+
+/* Exportar / importar */
+function toCSV(){
+  const cols=['fecha','hora','tipo','intensidad','emocion','situacion','hambre','que_hice','perdida_control','antes','despues','herramienta','accion_alternativa','sueno','estres','energia','ansiedad_dia','horarios_regulares'];
+  const q=v=>{v=v==null?'':String(v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  const rows=S.log.map(e=>[dk(e.ts),hm(e.ts),e.kind,e.int,e.emo,e.sit,e.hunger,e.did,e.control,e.before,e.after,e.tool,e.alt,'','','','','']);
+  Object.entries(S.checkins).sort().forEach(([d,c])=>{if(c.m)rows.push([d,'','checkin_manana','','','','','','','','','','',c.m.sleep,c.m.stress,c.m.energy,'','']);if(c.n)rows.push([d,'','checkin_noche','','','','','','','','',c.n.tool||'','','','','',c.n.anx,c.n.regular?'si':'no'])});
+  return [cols.join(','),...rows.map(r=>r.map(q).join(','))].join('\n');
+}
+let expKind='json';
+
+/* ---------- Acciones ---------- */
+let wipeArmed=false,impArmed=false;
+const ACT={
+  tab:v=>{if(!ov.hidden){clearTimers();ov.hidden=true;ov.innerHTML='';document.body.style.overflow=''}V.tab=v;V.sub=null;render(true)},
+  sub:v=>{V.tab='mas';V.sub=v||null;if(!ov.hidden){clearTimers();ov.hidden=true;ov.innerHTML='';document.body.style.overflow=''}render(true)},
+  range:v=>{V.range=+v;render()},
+  log:v=>openLog(v),
+  saveLog:v=>saveLog(v),
+  sos:()=>openSOS(null),
+  sosNext:v=>sosNext(v==='skip'),
+  sosAgain:()=>{SOS.step=1;renderSOS()},
+  sosContact:()=>{const c=S.settings.contact;const box=document.createElement('div');box.className='note';box.innerHTML=`<p class="eyebrow">Tu contacto</p><p><b>${esc(c.name||'Contacto')}</b></p>${c.phone?`<p class="num" style="user-select:all;font-size:1.2rem">${esc(c.phone)}</p><div class="row"><a class="btn sm soft" href="tel:${esc(c.phone.replace(/[^\d+]/g,''))}">Llamar</a><a class="btn sm soft" href="https://wa.me/${esc(c.phone.replace(/\D/g,''))}" target="_blank" rel="noopener">WhatsApp</a></div>`:''}${c.note?`<p class="muted">${esc(c.note)}</p>`:''}`;const sb=$('#sos-body');const old=$('#ov .note.contact');if(old){old.remove();return}box.classList.add('contact');sb.before(box)},
+  tool:v=>openTool(v),
+  toolNext:()=>toolNext(),
+  groundNext:()=>{TS.g++;renderTool()},
+  beck:v=>{const b=BECK[+v];$('#t-th').value=b[0];if(!$('#t-alt').value)$('#t-alt').value=b[1]},
+  defuGo:()=>{const t=$('#d-in').value.trim();if(!t){toast('Escribí el pensamiento primero');return}$('#d-out').innerHTML=[t,`Estoy teniendo el pensamiento de que ${t.charAt(0).toLowerCase()+t.slice(1)}.`,`Me doy cuenta de que estoy teniendo el pensamiento de que ${t.charAt(0).toLowerCase()+t.slice(1)}.`].map((s,i)=>`<div class="note ${i===2?'accent':''}"><p class="${i===0?'':'small muted'}" style="${i?'':'font-size:1.05rem'}">${i===0?'«'+esc(s)+'»':esc(s)}</p></div>`).join('')+'<p class="muted small">Leelas despacio, en orden. El pensamiento puede seguir ahí; vos elegís qué hacer.</p>'},
+  breathGo:v=>startBreath(+v),
+  surfDur:v=>{if(raf)return;FORM.dur=v;$$('#ov .seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v))},
+  surfGo:()=>startSurf(),
+  close:()=>closeOv(),
+  checkin:v=>openCheckin(v),
+  saveCheckin:()=>saveCheckin(),
+  planDone:(v,b)=>{const p=getPlan();p.done=b.checked?[...new Set([...p.done,v])]:p.done.filter(x=>x!==v);save();b.closest('.check').classList.toggle('done',b.checked)},
+  clearDemo:()=>{clearDemo();toast('Listo. Empezás de cero.');render(true)},
+  altDel:v=>{S.settings.alts.splice(+v,1);save();render()},
+  notify:()=>{if(!('Notification' in window)){toast('Este navegador no permite notificaciones');return}Notification.requestPermission().then(p=>{S.settings.remind=p==='granted';save();scheduleReminder();render();toast(p==='granted'?'Notificaciones activadas':'No se activaron las notificaciones')}).catch(()=>toast('No se pudieron activar'))},
+  exp:v=>{expKind=v;$('#exp-box').hidden=false;$('#exp-txt').value=v==='json'?JSON.stringify(S,null,1):toCSV()},
+  copy:()=>{const ta=$('#exp-txt');const sel=()=>{ta.focus();ta.select();toast('Texto seleccionado: copialo con Ctrl+C o el menú')};try{navigator.clipboard.writeText(ta.value).then(()=>toast('Copiado'),sel)}catch(e){sel()}},
+  download:()=>{const blob=new Blob([$('#exp-txt').value],{type:expKind==='json'?'application/json':'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pausa-${dk(Date.now())}.${expKind}`;document.body.appendChild(a);a.click();a.remove()},
+  imp:(v,b)=>{let o;try{o=JSON.parse($('#imp-txt').value)}catch(e){toast('El texto no es un JSON válido');return}if(!o||o.v!==1||!Array.isArray(o.log)){toast('Ese archivo no es un respaldo de Pausa');return}if(!impArmed){impArmed=true;b.textContent='Tocá de nuevo para reemplazar tus datos';return}impArmed=false;S=o;S.settings=S.settings||blank().settings;S.checkins=S.checkins||{};S.plans=S.plans||{};save();toast(`Importados ${S.log.length} registros`);render(true)},
+  wipe:(v,b)=>{if(!wipeArmed){wipeArmed=true;b.textContent='Tocá de nuevo para borrar todo';later(()=>{wipeArmed=false;if(b.isConnected)b.textContent='Borrar todos mis datos'},5000);return}wipeArmed=false;S=blank();save();toast('Datos borrados');V.sub=null;V.tab='inicio';render(true)},
+  chip:(v,b)=>{const g=b.dataset.g,grp=b.closest('[data-group]');
+    if(grp.dataset.multi){const a=FORM[g]||[];FORM[g]=a.includes(v)?a.filter(x=>x!==v):[...a,v];b.setAttribute('aria-pressed',FORM[g].includes(v))}
+    else{FORM[g]=v;$$('.chip',grp).forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===FORM[g]))}
+    FORM.__on&&FORM.__on(g)}
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;if(!ACT[a])return;if(b.tagName==='A')return;if(a!=='planDone')e.preventDefault();ACT[a](b.dataset.v,b,e)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ov.hidden)closeOv()});
+window.addEventListener('resize',()=>{if($('#surfc')&&!raf)drawSurf(0)});
+
+/* Recordatorio local (versión instalada) */
+let remT=null;
+function scheduleReminder(){
+  clearTimeout(remT);
+  if(!IS_PWA||!S.settings.remind||!('Notification' in window)||Notification.permission!=='granted')return;
+  const rw=riskWindow();if(!rw)return;
+  const t=new Date();t.setHours(rw.h,rw.m,0,0);const ms=t.getTime()-Date.now();if(ms<=0)return;
+  remT=setTimeout(()=>{const body=`Se acerca tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h). Una pausa de un minuto ahora.`;
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification('Pausa',{body,tag:'riesgo'})).catch(()=>{});else try{new Notification('Pausa',{body})}catch(e){}},ms);
+}
+if(IS_PWA&&'serviceWorker' in navigator&&/^https?:/.test(location.protocol)){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+
+render();
+scheduleReminder();
+})();
+</script>
+</body>
+</html>
