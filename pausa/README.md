@@ -41,6 +41,7 @@ Pausa acompaña todos los días, entre sesión y sesión con el psicólogo. No l
 - `app.html`: la app entera (HTML + CSS + JS, sin dependencias).
 - `index.html`: versión instalable, se genera con `./build.sh` a partir de `app.html`.
 - `manifest.webmanifest`, `sw.js`, `icon.svg`: lo necesario para instalarla y usarla sin conexión.
+- `pausa-web.zip`: los 4 archivos listos para subir a un dominio (`index.html`, `manifest.webmanifest`, `sw.js`, `icon.svg`).
 
 ## Probarla en la computadora (Windows)
 
