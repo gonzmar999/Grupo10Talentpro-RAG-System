@@ -11,6 +11,7 @@ cd "$(dirname "$0")"
     '<link rel="manifest" href="manifest.webmanifest">' \
     '<link rel="icon" href="icon.svg" type="image/svg+xml">' \
     '<link rel="apple-touch-icon" href="icon.svg">' \
+    '<script src="config.js"></script>' \
     '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>' \
     '</head>' '<body>'
   cat app.html

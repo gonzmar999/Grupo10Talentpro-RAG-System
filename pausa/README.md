@@ -1,4 +1,4 @@
-# Pausa (prototipo v0.3)
+# Pausa (prototipo v0.4)
 
 App personal para manejar antojos de dulce y la ansiedad asociada. Se basa en la guía «Antojos de dulce, ansiedad y control».
 No cuenta calorías, no fija metas de peso, no propone dietas y nunca sugiere compensar después de un episodio.
@@ -52,12 +52,37 @@ Con eso define un **nivel de acompañamiento** (liviano, diario o intensivo; no 
 
 Los datos se guardan en dos lugares del navegador (localStorage e IndexedDB) y se pide almacenamiento persistente, así no hay que volver a responder nada.
 
+## Cuentas y sincronización (opcional)
+
+Con una cuenta, los datos se guardan también en la nube: no se pierden al cambiar de celular y se ven desde cualquier dispositivo. La app sigue guardando todo primero en el dispositivo, así funciona sin conexión, y sincroniza cuando hay internet. Sin configurar nada, Pausa funciona igual con datos solo locales.
+
+Se usa [Supabase](https://supabase.com) (tiene plan gratis). Se configura una sola vez:
+
+1. Creá una cuenta en supabase.com y un proyecto nuevo. Elegí una región cercana (por ejemplo, São Paulo).
+2. En el proyecto, abrí **SQL Editor → New query**, pegá todo el contenido de `supabase.sql` y tocá **Run**.
+3. En **Authentication → URL Configuration**, poné la dirección de tu sitio en **Site URL** (por ejemplo `https://pausa.tudominio.com`) y agregala también en **Redirect URLs**. Así funcionan los links de confirmación y de «olvidé mi contraseña».
+4. En **Project Settings → API**, copiá la **Project URL** y la clave **anon public**.
+5. Abrí `config.js`, pegá esos dos valores y subilo a tu sitio junto con el resto de los archivos.
+
+Opcional: en **Authentication → Providers → Email** podés desactivar «Confirm email» para que no haga falta confirmar el mail al crear la cuenta.
+
+Qué hace la app con la cuenta:
+
+- **Crear cuenta / Entrar** con mail y contraseña, y **Olvidé mi contraseña** con un link al mail.
+- Sincroniza sola después de cada cambio, al volver a abrir la app y al recuperar la conexión. Si dos celulares cargan datos, se combinan sin perder registros.
+- **Cerrar sesión** dejando los datos en el dispositivo, o borrándolos (para celulares compartidos).
+- **Eliminar la cuenta** y sus datos de la nube.
+
+Privacidad: cada cuenta solo puede leer y escribir su propia fila (reglas de `supabase.sql`). Quien administra el proyecto de Supabase tiene acceso técnico a la base de datos; si Pausa la van a usar otras personas, contáselo.
+
 ## Archivos
 
 - `app.html`: la app entera (HTML + CSS + JS, sin dependencias).
 - `index.html`: versión instalable, se genera con `./build.sh` a partir de `app.html`.
 - `manifest.webmanifest`, `sw.js`, `icon.svg`: lo necesario para instalarla y usarla sin conexión.
-- `pausa-web.zip`: los 4 archivos listos para subir a un dominio (`index.html`, `manifest.webmanifest`, `sw.js`, `icon.svg`).
+- `config.js`: datos de conexión a Supabase (vacíos por defecto).
+- `supabase.sql`: crea la tabla y las reglas de seguridad en Supabase.
+- `pausa-web.zip`: los archivos listos para subir a un dominio (`index.html`, `config.js`, `manifest.webmanifest`, `sw.js`, `icon.svg`) más `supabase.sql`.
 
 ## Probarla en la computadora (Windows)
 
