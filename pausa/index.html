@@ -63,6 +63,7 @@ p{margin:0}
 .note.accent{background:var(--accent-soft)}
 
 .btn{min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;text-align:center}
+a.btn{text-decoration:none;color:inherit}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .btn.soft{background:var(--accent-soft);border-color:transparent;color:var(--fg)}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--accent);min-height:44px;padding:0 10px}
@@ -172,6 +173,24 @@ details.lib .body{padding:12px 0 16px;display:flex;flex-direction:column;gap:8px
 .tbl th{color:var(--muted);font-weight:700}
 .mono{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.8rem}
 
+.btn.crisis{background:var(--fg);border-color:var(--fg);color:var(--bg);min-height:60px;font-size:1.05rem;justify-content:space-between;padding:0 18px}
+.btn.crisis small{font-weight:400;opacity:.85;font-size:.85rem}
+.meals{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.meal{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;cursor:pointer;text-align:left;min-height:56px}
+.meal .mt{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.meal.ok{background:var(--accent-soft);border-color:transparent}
+.meal.next{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.choice{display:grid;gap:12px}
+.choice .btn{min-height:112px;flex-direction:column;gap:6px;border-radius:20px;font-family:var(--f-display);font-size:1.4rem;font-weight:500}
+.choice .btn small{font-family:var(--f-body);font-size:.9rem;font-weight:400;opacity:.9}
+.timer{font-family:var(--f-display);font-size:3.2rem;line-height:1;font-variant-numeric:tabular-nums}
+.bar-p{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.bar-p i{display:block;height:100%;background:var(--accent);transition:width 1s linear}
+input[type=time],input[type=date],select{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px;min-height:44px;box-sizing:border-box}
+.mealrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center}
+.mealrow input[type=checkbox],.envrow input{width:22px;height:22px;accent-color:var(--accent);margin:0}
+.envrow{display:flex;gap:12px;align-items:flex-start;padding:8px 0}
+.ifthen p{margin:0}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;max-width:min(90vw,480px);box-sizing:border-box;font-size:.95rem}
 </style>
 
@@ -229,9 +248,9 @@ const ic=(k,cls='ico')=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="tr
 const EMO=[['estres','Estrés'],['aburrimiento','Aburrimiento'],['cansancio','Cansancio'],['ansiedad','Ansiedad'],['tristeza','Tristeza'],['festejo','Festejo'],['otro','Otro']];
 const SIT=[['trabajo','Trabajo'],['casa','Casa'],['auto','Auto'],['reunion','Reunión'],['despues','Después de comer'],['noche','Noche']];
 const HUNGER=[['fisica','Física'],['emocional','Emocional'],['nose','No sé']];
-const DID=[['sos','Usé el SOS'],['herramienta','Usé otra herramienta'],['espere','Lo dejé pasar'],['alternativa','Hice otra cosa'],['dulce','Comí dulce'],['nada','Todavía nada']];
+const DID=[['crisis','Usé el modo crisis'],['sos','Usé el SOS'],['herramienta','Usé otra herramienta'],['espere','Lo dejé pasar'],['alternativa','Hice otra cosa'],['dulce','Comí dulce'],['nada','Todavía nada']];
 const CONTROL=[['no','No'],['algo','Un poco'],['si','Sí']];
-const MANAGED=['sos','herramienta','espere','alternativa'];
+const MANAGED=['crisis','sos','herramienta','espere','alternativa'];
 const L=arr=>Object.fromEntries(arr);
 const EMO_L=L(EMO),SIT_L=L(SIT),HUNGER_L=L(HUNGER),DID_L=L(DID);
 const TOOLS={
@@ -242,16 +261,70 @@ const TOOLS={
   defu:{n:'Defusión',e:'ACT',d:'1 min',i:'distance'},
   surf:{n:'Urge surfing',e:'ACT / mindfulness (Brewer)',d:'1–3 min',i:'wave'}
 };
-const TOOL_L={sos:'SOS antojo',alt:'Acción alternativa',ninguna:'Ninguna',...Object.fromEntries(Object.entries(TOOLS).map(([k,v])=>[k,v.n]))};
+const TOOL_L={crisis:'Modo crisis',sos:'SOS antojo',alt:'Acción alternativa',ninguna:'Ninguna',...Object.fromEntries(Object.entries(TOOLS).map(([k,v])=>[k,v.n]))};
 const DEFAULT_ALTS=['Tomar un vaso de agua o un té','Salir a caminar 5 minutos','Escribirle a alguien','Lavarme la cara con agua fría','Escuchar una canción entera','Ordenar algo chico durante 5 minutos'];
+const DEFAULT_MSG='Estoy en un momento difícil con la comida. ¿Podés hablar 5 minutos? No hace falta que hagas nada, solo acompañarme un rato.';
+const DEFAULT_MEALS=[{id:'desayuno',n:'Desayuno',t:'08:00',on:true},{id:'colacion',n:'Colación',t:'10:30',on:false},{id:'almuerzo',n:'Almuerzo',t:'13:00',on:true},{id:'merienda',n:'Merienda',t:'16:30',on:true},{id:'cena',n:'Cena',t:'20:30',on:true}];
+const IDEAS={
+  desayuno:['Huevos revueltos con tostada integral','Yogur natural con avena y fruta','Tostada integral con queso y tomate','Avena cocida con banana y maní'],
+  colacion:['Un puñado de frutos secos','Una fruta con un trozo de queso','Un yogur natural'],
+  almuerzo:['Un plato con verduras, una proteína (carne, pollo, pescado, huevo o legumbres) y arroz, papa, pasta o pan','Ensalada completa con garbanzos o atún y pan integral','Guiso de lentejas con verduras'],
+  merienda:['Yogur con avena y nueces','Tostada integral con queso o huevo','Manzana con mantequilla de maní','Hummus con zanahoria o galletas integrales'],
+  cena:['Pescado o pollo con verduras y papa','Tortilla de verduras con ensalada','Pasta con salsa de tomate y legumbres o carne']
+};
+const SUG={
+  reasons:['Quiero dejar de sentir culpa después de comer','Quiero estar en calma a la noche','Quiero que la comida vuelva a ser algo que disfruto','Quiero dejar de esconderme para comer'],
+  signals:['Salteo comidas','Duermo mal varios días seguidos','Me digo «ya fue»','Paso por el kiosco sin pensarlo','Me aíslo'],
+  risks:['Salida del trabajo con cansancio','Noches en casa sin plan','Después de una discusión','Fines de semana sin rutina'],
+  envCustom:[]
+};
+const SUG_IF=[['salgo del trabajo con antojo','tomo otro camino y como mi merienda'],['pienso «ya fue, sigo»','me digo que un episodio no arruina el día y hago la próxima comida en su horario'],['estoy en casa a la noche con ganas','me hago un té, cierro la cocina y abro el modo crisis'],['entro a un kiosco','compro solo lo que fui a buscar y salgo']];
+const ENV=[['En casa',[['c1','No tener en cantidad los dulces que más me disparan'],['c2','Si compro dulce, que sea en porción individual'],['c3','Tener a mano comidas que me gustan y me sacian']]],
+  ['En la calle y el trabajo',[['k1','Cambiar el recorrido que pasa por el kiosco en mi franja de riesgo'],['k2','Llevar la merienda preparada'],['k3','Si entro al kiosco, comprar solo lo que fui a buscar y salir']]],
+  ['A la noche',[['n1','Cerrar la cocina después de cenar con un ritual: un té, lavarme los dientes'],['n2','Tener un plan para la noche: una serie, llamar a alguien, leer'],['n3','Ir a dormir a una hora parecida todos los días']]],
+  ['Fines de semana',[['f1','Mantener los horarios de comida aunque no haya rutina'],['f2','Planificar al menos una salida o actividad']]]];
+const OUTCOME=[['paso','Pasó sin comer'],['plan','Comí algo planificado'],['episodio','Comí con pérdida de control']];
+const OUT_L=L(OUTCOME);
+const VULN=['Dormí mal','Salteé comidas','Mucho estrés','Estaba en soledad','Cansancio','Discusión o mal momento','Alcohol','Otro'];
+const CRISIS=[
+  {t:'Alejate de la comida',d:'Salí de la cocina o del kiosco. Si estás en el auto, seguí de largo. Primero poné distancia física; lo demás viene después.',src:'Control de estímulos (TCC)'},
+  {t:'Agua fría',d:'Mojate la cara con agua fría unos 30 segundos, o sostené algo frío en las manos. Baja la activación del cuerpo rápido.',src:'DBT · TIPP',warn:'Si tenés un problema cardíaco, salteá este paso.'},
+  {t:'Respirá',d:'Inhalá 4 segundos y exhalá 6. Cuatro veces.',src:'Respiración pautada (DBT)',breath:4},
+  {t:'Ponele nombre',d:'Decite: «Esto es un antojo. Sube y baja. No es una orden». No hace falta que se vaya; alcanza con no obedecerlo ahora.',src:'ACT · defusión'},
+  {t:'Tus razones',reasons:true,src:'Tu plan'},
+  {t:'Tu plan para este momento',ifthen:true,src:'Tu plan · «si… entonces…»'},
+  {t:'Ocupá las manos',alts:true,d:'Elegí una de tus acciones y hacela hasta que termine el tiempo.',src:'Acción alternativa'}
+];
+const FOOD=[
+  ['No pasar más de 3 o 4 horas sin comer','TCC (Fairburn)','Desayuno, almuerzo, merienda y cena en horarios previsibles. Es lo de mejor evidencia para bajar los episodios de descontrol: muchas horas sin comer suelen terminar en un antojo fuerte más tarde.'],
+  ['Proteína en cada comida','Nutrición','Huevos, yogur natural o griego, queso, legumbres, pollo, pescado o tofu. Sacian más y por más tiempo. Un desayuno con proteína se asoció con menos picoteo a la tarde y a la noche.'],
+  ['Fibra','Nutrición','Lentejas, garbanzos, porotos, avena, verduras, fruta entera (no en jugo) y pan integral. Hacen que la saciedad dure más pareja.'],
+  ['Grasas que sacian','Nutrición','Frutos secos, maní, palta y aceite de oliva.'],
+  ['Merienda fuerte antes de la franja de riesgo','Tu patrón','Si el antojo aparece a la tarde, la merienda es tu mejor herramienta: con proteína o fibra, antes de que empiece la franja.'],
+  ['El dulce, mejor de postre','Glucosa (Inchauspé)','Después de una comida suele generar menos pico de glucosa que solo y con el estómago vacío. Comer primero verduras y proteína también ayuda.'],
+  ['Lo que conviene no tener en cantidad','Ultraprocesados (van Tulleken, Moss)','Los dulces de paquete están diseñados para que comas de más. No se trata de prohibirlos, sino de no tenerlos a mano en cantidad.'],
+  ['Lo que no tiene buena evidencia','Para no gastar de más','Suplementos «anti-antojo» como cromo o canela y los «superalimentos». Los edulcorantes tienen resultados mixtos. Si tenés diabetes u otra condición, consultá a tu médico.']
+];
 const BODY=['Tensión','Calor','Vacío en el estómago','Inquietud','Salivación','Presión en el pecho','Nada en particular'];
 
 /* ---------- Estado y guardado local ---------- */
-const blank=()=>({v:1,log:[],checkins:{},plans:{},settings:{alts:DEFAULT_ALTS.slice(),contact:{name:'',phone:'',note:''},remind:false},demo:false});
+const blank=()=>({v:1,log:[],checkins:{},plans:{},meals:{},notes:[],pendingChain:null,
+  relapse:{reasons:[],signals:[],risks:[],ifthen:[],envOn:{},envCustom:[]},
+  settings:{alts:DEFAULT_ALTS.slice(),contacts:[],message:DEFAULT_MSG,meals:DEFAULT_MEALS.map(m=>({...m})),session:{next:'',freq:14,last:''},remind:false},demo:false});
+function migrate(){
+  const b=blank(),st=S.settings=S.settings||b.settings;
+  if(!st.contacts){st.contacts=st.contact&&(st.contact.name||st.contact.phone)?[{name:st.contact.name,phone:st.contact.phone,note:st.contact.note||''}]:[]}
+  delete st.contact;
+  ['alts','message','meals','session'].forEach(k=>{if(st[k]==null)st[k]=b.settings[k]});
+  ['checkins','plans','meals','notes','relapse'].forEach(k=>{if(S[k]==null)S[k]=b[k]});
+  Object.keys(b.relapse).forEach(k=>{if(S.relapse[k]==null)S.relapse[k]=b.relapse[k]});
+  if(S.pendingChain===undefined)S.pendingChain=null;
+}
 function load(){try{const s=localStorage.getItem(KEY);if(s){const o=JSON.parse(s);if(o&&o.v===1&&Array.isArray(o.log))return o}}catch(e){}return null}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 let S=load();
 if(!S){S=blank();seedDemo();save()}
+migrate();
 
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function seedDemo(){
@@ -283,13 +356,16 @@ function seedDemo(){
     if(ck.m||ck.n)S.checkins[dk(day)]=ck;
   }
   [25,22,16].forEach(d=>{const t=new Date(today);t.setDate(t.getDate()-d);t.setHours(22,40);S.log.push({id:uid(),kind:'antojo',ts:t.getTime(),int:9,emo:'ansiedad',sit:'noche',hunger:'emocional',did:'dulce',control:'si',demo:true})});
+  [12,8,5,2].forEach((d,i)=>{const t=new Date(today);t.setDate(t.getDate()-d);t.setHours(18,10+i*7);const b=9-(i%2),a=4+(i%3);S.log.push({id:uid(),kind:'crisis',ts:t.getTime(),before:b,after:a,path:i===1?'ambos':'solo',outcome:'paso',min:10,demo:true});S.log.push({id:uid(),kind:'antojo',ts:t.getTime()-6e5,int:b,emo:'cansancio',sit:'auto',hunger:'emocional',did:'crisis',demo:true})});
+  const md={};DEFAULT_MEALS.filter(m=>m.on).forEach(m=>{const t=new Date(today);const[h,mi]=m.t.split(':').map(Number);t.setHours(h,mi+10);if(t.getTime()<Date.now()-36e5&&m.id!=='merienda')md[m.id]=t.getTime()});
+  S.meals={[dk(today)]:md};
   S.log.sort((a,b)=>a.ts-b.ts);
   S.demo=true;
 }
 function clearDemo(){
   S.log=S.log.filter(e=>!e.demo);
   Object.keys(S.checkins).forEach(k=>{if(S.checkins[k].demo)delete S.checkins[k]});
-  S.plans={};S.demo=false;save();
+  S.plans={};S.meals={};S.pendingChain=null;S.demo=false;save();
 }
 
 /* ---------- Análisis ---------- */
@@ -316,6 +392,8 @@ function analyze(days){
   a.sos={n:sos.length,drop:avg(sos.map(e=>e.before-e.after))};
   const tl={};Lg.filter(e=>e.kind==='ansiedad'&&e.before!=null&&e.after!=null).forEach(e=>{(tl[e.tool]=tl[e.tool]||[]).push(e.before-e.after)});
   a.anxTools=Object.entries(tl).map(([k,v])=>({k,n:v.length,drop:avg(v)})).sort((x,y)=>y.drop-x.drop);
+  const crs=Lg.filter(e=>e.kind==='crisis'&&e.before!=null&&e.after!=null);
+  a.crisis={n:crs.length,drop:avg(crs.map(e=>e.before-e.after))};
   a.outcomes=tally('did',cr);
   a.managed=cr.length?cr.filter(e=>MANAGED.includes(e.did)).length/cr.length:null;
   return a;
@@ -328,6 +406,7 @@ function insights(a){
   if(a.sleep.nlo>=2&&a.sleep.nhi>=2&&a.sleep.lo-a.sleep.hi>=.6)o.push(`Los días que dormís mal, el antojo promedio es ${r1(a.sleep.lo)}; cuando dormís bien, ${r1(a.sleep.hi)}.`);
   if(a.stress.nlo>=2&&a.stress.nhi>=2&&a.stress.hi-a.stress.lo>=.6)o.push(`Con estrés alto a la mañana, el antojo promedio del día es ${r1(a.stress.hi)}; con estrés bajo, ${r1(a.stress.lo)}.`);
   if(a.emotional!=null&&a.emotional>=.5)o.push(`Marcaste ${pct(a.emotional)} de los antojos como hambre emocional.`);
+  if(a.crisis.n>=2)o.push(`El modo crisis te bajó el antojo ${r1(a.crisis.drop)} puntos en promedio (${a.crisis.n} usos).`);
   if(a.sos.n>=2)o.push(`El SOS te bajó el antojo ${r1(a.sos.drop)} puntos en promedio (${a.sos.n} usos).`);
   if(a.anxTools[0]&&a.anxTools[0].n>=2)o.push(`Para la ansiedad, lo que más te sirvió fue ${TOOL_L[a.anxTools[0].k].toLowerCase()}: −${r1(a.anxTools[0].drop)} en promedio.`);
   return o;
@@ -345,19 +424,38 @@ function weeks(nw){
 }
 function safety(){
   const ep=since(14).filter(e=>e.kind==='antojo'&&e.control==='si').length;
+  const ep7=since(7).filter(e=>e.kind==='antojo'&&e.control==='si').length;
   const w=weeks(4).map(x=>x.episodes);
   const rising=w[1]<w[2]&&w[2]<w[3]&&w[3]>=2;
   const ints=weeks(4).map(x=>x.int);
   const worse=ints.every(x=>x!=null)&&ints[1]<ints[2]&&ints[2]<ints[3]&&ints[3]-ints[1]>=1.5;
-  return ep>=4||rising||worse?{ep,rising,worse}:null;
+  return ep>=4||ep7>=2||rising||worse?{ep,ep7,rising,worse}:null;
 }
 function riskWindow(){const a=analyze(14);if(a.n<5||!a.peak||a.peakN<3)return null;let m=a.peak.start*60-30;if(m<0)m+=1440;return{h:Math.floor(m/60),m:m%60,peak:a.peak}}
+
+/* ---------- Comidas ---------- */
+const mins=t=>{const[h,m]=String(t).split(':').map(Number);return h*60+(m||0)};
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+const mealsOn=()=>S.settings.meals.filter(m=>m.on).sort((a,b)=>mins(a.t)-mins(b.t));
+const idea=id=>{const a=IDEAS[id]||IDEAS.merienda;return a[new Date().getDate()%a.length]};
+function mealState(){
+  const done=S.meals[dk(Date.now())]||{},ms=mealsOn(),nm=nowMin();
+  const next=ms.find(m=>!done[m.id]&&mins(m.t)>=nm-60)||null;
+  const lastTs=Math.max(0,...Object.values(done));
+  let gap=null;
+  if(ms.length&&nm<mins(ms[ms.length-1].t)+60){
+    if(!lastTs&&nm>mins(ms[0].t)+90)gap='none';
+    else if(lastTs&&Date.now()-lastTs>4*36e5&&next)gap='long';
+  }
+  return{done,ms,next,gap,lastTs};
+}
 
 /* ---------- Plan diario ---------- */
 function buildPlan(){
   const a=analyze(14),items=[],today=S.checkins[dk(Date.now())],m=today&&today.m;
   const rw=riskWindow();
   if(rw)items.push({id:'peak',t:`A las ${pad(rw.h)}:${pad(rw.m)}, antes de tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h), hacé 1 minuto de respiración lenta.`,tool:'resp',src:'Tu patrón · respiración pautada (DBT)'});
+  if(rw){const ps=rw.peak.start*60,bf=mealsOn().filter(x=>mins(x.t)<ps).pop();if(bf&&ps-mins(bf.t)<=180)items.push({id:'meal',t:`Tu franja de riesgo empieza a las ${rw.peak.start} h. Hacé tu ${bf.n.toLowerCase()} a las ${bf.t}, con proteína o fibra: por ejemplo, ${idea(bf.id).toLowerCase()}.`,src:'Comer para tener menos antojos'})}
   if(m&&(m.sleep<=2||m.energy<=2))items.push({id:'tired',t:`Hoy arrancás con poco descanso y el cansancio suele subir el antojo. Dejá a mano tu acción alternativa: «${S.settings.alts[0]||'tomar agua'}».`,src:'Tu check-in de hoy'});
   else if(m&&m.stress>=4)items.push({id:'stress',t:'Esperás un día con estrés alto. Agendá una pausa STOP a media mañana y otra a media tarde.',tool:'stop',src:'DBT'});
   const nights=Object.entries(S.checkins).filter(([d,c])=>c.n&&new Date(d+'T12:00').getTime()>Date.now()-7*DAY).map(([,c])=>c.n);
@@ -388,17 +486,17 @@ function scale5(g,labels){return chips(g,labels.map((l,i)=>[String(i+1),l]),{cls
 function bindChipChange(fn){FORM.__on=fn}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},2800)}
 
-let timers=[],raf=null;
-function clearTimers(){timers.forEach(clearTimeout);timers=[];if(raf)cancelAnimationFrame(raf);raf=null}
-const later=(fn,ms)=>{timers.push(setTimeout(fn,ms))};
+let timers=[],btimers=[],raf=null;
+function clearTimers(){timers.forEach(clearTimeout);btimers.forEach(clearTimeout);timers=[];btimers=[];if(raf)cancelAnimationFrame(raf);raf=null}
+const later=(fn,ms,arr=timers)=>{arr.push(setTimeout(fn,ms))};
 
 function breathHTML(cycles=6){return `<div class="breath"><div class="breath-box"><div class="breath-c"></div><div class="breath-l">Listo para empezar</div></div><p class="muted num breath-n">${cycles} ciclos · 4 s inhalar, 6 s exhalar</p><button class="btn soft breath-go" data-a="breathGo" data-v="${cycles}">Empezar</button></div>`}
 function startBreath(cycles,onDone){
-  clearTimers();
+  btimers.forEach(clearTimeout);btimers=[];
   const c=$('#ov .breath-c'),l=$('#ov .breath-l'),n=$('#ov .breath-n'),b=$('#ov .breath-go');
   if(!c)return;b.hidden=true;let k=0;
-  const inh=()=>{c.style.transitionDuration='4s';c.classList.add('in');l.textContent='Inhalá';later(exh,4000)};
-  const exh=()=>{c.style.transitionDuration='6s';c.classList.remove('in');l.textContent='Exhalá despacio';later(()=>{k++;n.textContent=`${k} de ${cycles}`;if(k>=cycles){l.textContent='Listo';onDone&&onDone()}else inh()},6000)};
+  const inh=()=>{c.style.transitionDuration='4s';c.classList.add('in');l.textContent='Inhalá';later(exh,4000,btimers)};
+  const exh=()=>{c.style.transitionDuration='6s';c.classList.remove('in');l.textContent='Exhalá despacio';later(()=>{k++;n.textContent=`${k} de ${cycles}`;if(k>=cycles){l.textContent='Listo';onDone&&onDone()}else inh()},6000,btimers)};
   n.textContent=`0 de ${cycles}`;inh();
 }
 function surfHTML(){
@@ -472,12 +570,29 @@ const VIEWS={};
 function describe(e){
   if(e.kind==='antojo'){const bits=[];if(e.emo)bits.push(EMO_L[e.emo]);if(e.sit)bits.push(SIT_L[e.sit]);return `<b>${e.did==='dulce'?'Comí dulce':'Antojo'}</b> <span class="num">${e.int!=null?e.int+'/10':''}</span>${bits.length?' · '+bits.join(' · '):''}${e.did&&e.did!=='dulce'?`<br><span class="muted small">${DID_L[e.did]}</span>`:''}${e.control==='si'?'<br><span class="muted small">Con pérdida de control</span>':''}`}
   if(e.kind==='sos')return `<b>SOS antojo</b> <span class="num">${e.before} → ${e.after}</span>${e.alt?`<br><span class="muted small">${esc(e.alt)}</span>`:''}`;
+  if(e.kind==='crisis')return `<b>Modo crisis</b> <span class="num">${e.before} → ${e.after}</span><br><span class="muted small">${esc(OUT_L[e.outcome]||'')}</span>`;
+  if(e.kind==='cadena')return `<b>Análisis en cadena</b>${e.cut?`<br><span class="muted small">Cortar en: ${esc(e.cut)}</span>`:''}`;
   if(e.kind==='ansiedad')return `<b>${esc(TOOL_L[e.tool]||'Herramienta')}</b> <span class="num muted">ansiedad ${e.before} → ${e.after}</span>`;
   return '';
 }
 
+function mealsCard(){
+  const st=mealState();if(!st.ms.length)return '';
+  return `<section class="card"><div class="row between"><h2>Comidas de hoy</h2><button class="link small" data-a="sub" data-v="comidas">Horarios</button></div>
+  <div class="meals">${st.ms.map(m=>{const ok=!!st.done[m.id],nx=st.next&&st.next.id===m.id;return `<button class="meal ${ok?'ok':''} ${nx&&!ok?'next':''}" data-a="meal" data-v="${m.id}" aria-pressed="${ok}"><b>${esc(m.n)}</b><span class="mt">${ok?'✓ '+hm(st.done[m.id]):m.t}</span></button>`}).join('')}</div>
+  ${st.gap?`<div class="note warn"><p>${st.gap==='none'?'Todavía no marcaste ninguna comida hoy. Si no comiste, comer algo ahora baja el antojo de más tarde.':'Pasaron más de 4 horas desde tu última comida. Comer algo ahora baja el antojo de después.'}</p></div>`:''}
+  ${st.next?`<p class="small"><span class="muted">Próxima: ${esc(st.next.n.toLowerCase())} a las ${st.next.t}. Idea:</span> ${esc(idea(st.next.id))}.</p>`:''}
+  <p class="hint">Tocá cada comida cuando la hagas. Solo cuenta el horario, nunca la cantidad.</p></section>`;
+}
+function sesCard(){
+  const ss=S.settings.session,n=S.notes.filter(x=>!x.done).length;
+  if(!ss.next&&!n)return `<section class="card"><div class="row between"><div class="stack-s grow"><h2>Entre sesiones</h2><span class="muted small">Anotá la fecha de tu próxima sesión y llegá con un resumen listo.</span></div><button class="btn sm soft" data-a="sub" data-v="sesiones">Abrir</button></div></section>`;
+  const days=ss.next?Math.round((new Date(ss.next+'T12:00')-new Date(dk(Date.now())+'T12:00'))/DAY):null;
+  const when=days==null?'Sin fecha':days<0?'La fecha ya pasó':days===0?'Es hoy':`En ${days} ${days===1?'día':'días'} · ${dShort(new Date(ss.next+'T12:00'))}`;
+  return `<section class="card"><div class="row between"><div class="stack-s grow"><h2>Próxima sesión</h2><span class="muted small">${when} · ${n} ${n===1?'nota':'notas'}</span></div><button class="btn sm soft" data-a="sub" data-v="sesiones">Preparar</button></div><div><button class="link small" data-a="note">Anotar algo para la sesión</button></div></section>`;
+}
 VIEWS.inicio=()=>{
-  const now=new Date(),k=dk(now),ck=S.checkins[k]||{},plan=getPlan(),sf=safety(),rw=riskWindow();
+  const now=new Date(),k=dk(now),ck=S.checkins[k]||{},plan=getPlan(),sf=safety(),rw=riskWindow(),pc=S.pendingChain;
   let risk='';
   if(rw){const nm=now.getHours()*60+now.getMinutes(),st=rw.h*60+rw.m,en=rw.peak.end*60||1440;if(nm>=st&&nm<en)risk=`<div class="note accent"><p class="eyebrow">Franja de riesgo</p><p>Estás en tu horario de mayor antojo (${rw.peak.start}–${rw.peak.end} h). Una pausa de un minuto ahora suele servir más que esperar a que aparezca.</p><div class="row"><button class="btn sm primary" data-a="tool" data-v="resp">Respirar 1 minuto</button></div></div>`}
   const today=S.log.filter(e=>dk(e.ts)===k).slice().reverse();
@@ -486,13 +601,16 @@ VIEWS.inicio=()=>{
   return `
   <header class="stack-s"><p class="eyebrow">${DOW[now.getDay()]} ${now.getDate()} de ${MON[now.getMonth()]}</p><h1>Pausa</h1></header>
   ${S.demo?`<div class="note"><p class="eyebrow">Datos de ejemplo</p><p>Estás viendo 4 semanas de datos inventados para que veas cómo funcionan los patrones y el progreso. Cuando quieras empezar en serio, borralos.</p><div class="row"><button class="btn sm primary" data-a="clearDemo">Empezar con mis datos</button></div></div>`:''}
-  ${sf?`<div class="note warn"><p class="eyebrow">Para tener en cuenta</p><p>${sf.ep>=4?`En las últimas dos semanas registraste ${sf.ep} episodios con pérdida de control.`:'La tendencia de las últimas semanas viene subiendo.'} Esto suele responder bien al trabajo con un profesional en conducta alimentaria (TCC o DBT). No hace falta esperar a que empeore para consultar.</p><div class="row"><button class="btn sm soft" data-a="sub" data-v="apoyo">Ver mi contacto</button></div></div>`:''}
+  ${sf?`<div class="note warn"><p class="eyebrow">Para tener en cuenta</p><p>${sf.ep7>=2?`Esta semana registraste ${sf.ep7} episodios con pérdida de control.`:sf.ep>=4?`En las últimas dos semanas registraste ${sf.ep} episodios con pérdida de control.`:'La tendencia de las últimas semanas viene subiendo.'} Esto suele responder bien al trabajo con un profesional en conducta alimentaria, y también hay tratamientos médicos que un psiquiatra puede evaluar. Pausa te acompaña todos los días; el profesional hace lo que una app no puede.</p><div class="row"><button class="btn sm soft" data-a="sub" data-v="gravedad">Ver opciones</button><button class="btn sm ghost" data-a="sub" data-v="apoyo">Mis contactos</button></div></div>`:''}
+  <button class="btn crisis block" data-a="crisis"><span>Antojo muy fuerte</span><small>Modo crisis ›</small></button>
   ${risk}
   <section class="hero-actions" aria-label="Acciones rápidas">
     <button class="btn primary big" data-a="log" data-v="antojo">Tengo un antojo<small>Registrarlo lleva menos de 20 segundos</small></button>
     <button class="btn mid" data-a="sos"><span>SOS antojo</span><small>Guía de 4 minutos</small></button>
     <button class="btn mid" data-a="log" data-v="dulce"><span>Comí dulce</span><small>Se registra como dato</small></button>
   </section>
+  ${pc?`<div class="note"><p class="eyebrow">Pendiente</p><p>Cuando tengas un rato de calma, mirá qué pasó en el episodio del ${dShort(pc.ts)}. Lleva 5 minutos y te ayuda a cortar la cadena la próxima vez.</p><div class="row"><button class="btn sm soft" data-a="chain">Hacerlo ahora</button><button class="btn sm ghost" data-a="chainSkip">Descartar</button></div></div>`:''}
+  ${mealsCard()}
   <section class="card"><div class="row between"><h2>Plan de hoy</h2><span class="muted small">${plan.items.length} acciones</span></div>
     <div class="list">${plan.items.map(it=>{const d=plan.done.includes(it.id);return `<div class="li"><label class="check grow ${d?'done':''}"><input type="checkbox" data-a="planDone" data-v="${it.id}" ${d?'checked':''}><span class="stack-s"><span class="txt">${esc(it.t)}</span><span class="muted small">${esc(it.src)}</span></span></label>${it.tool?`<button class="btn sm ghost" data-a="${it.tool==='sosx'?'sos':'tool'}" data-v="${it.tool}">Abrir</button>`:''}</div>`}).join('')}</div>
   </section>
@@ -500,8 +618,9 @@ VIEWS.inicio=()=>{
     ${ckRow('Mañana',ck.m,ck.m?`Dormiste ${S5[ck.m.sleep-1]} · estrés esperado ${ck.m.stress}/5 · energía ${ck.m.energy}/5`:'','m')}
     ${ckRow('Noche',ck.n,ck.n?`Ansiedad del día ${ck.n.anx}/10 · ${ck.n.regular?'comidas en horario':'comidas fuera de horario'}`:'','n')}
   </div></section>
+  ${sesCard()}
   <section class="card"><h2>Hoy</h2>${today.length?`<div class="list">${today.slice(0,6).map(e=>`<div class="li"><span class="t">${hm(e.ts)}</span><div class="grow">${describe(e)}</div></div>`).join('')}</div>`:'<p class="muted">Todavía no registraste nada hoy. Cuando aparezca un antojo, tocá «Tengo un antojo».</p>'}</section>
-  <p class="hint">Pausa es una herramienta de autogestión. No reemplaza a un profesional.</p>`;
+  <p class="hint">Pausa te acompaña todos los días, entre sesión y sesión. No reemplaza a un profesional.</p>`;
 };
 
 VIEWS.ansiedad=()=>`
@@ -521,7 +640,8 @@ VIEWS.patrones=()=>{
   <section class="card"><h2>Situaciones</h2>${hbars(a.sit,SIT_L,a.n)}</section>
   <section class="card"><h2>Qué hiciste con el antojo</h2>${hbars(out,DID_L,a.n)}<p class="muted small">Manejados con una herramienta: <b class="num">${pct(a.managed)}</b></p></section>
   <section class="card"><h2>Qué te baja más</h2>
-    ${a.sos.n||a.anxTools.length?`<div class="tbl"><table><thead><tr><th>Herramienta</th><th>Mide</th><th>Usos</th><th>Baja</th></tr></thead><tbody>
+    ${a.sos.n||a.crisis.n||a.anxTools.length?`<div class="tbl"><table><thead><tr><th>Herramienta</th><th>Mide</th><th>Usos</th><th>Baja</th></tr></thead><tbody>
+    ${a.crisis.n?`<tr><td>Modo crisis</td><td>antojo</td><td>${a.crisis.n}</td><td>−${r1(a.crisis.drop)}</td></tr>`:''}
     ${a.sos.n?`<tr><td>SOS antojo</td><td>antojo</td><td>${a.sos.n}</td><td>−${r1(a.sos.drop)}</td></tr>`:''}
     ${a.anxTools.map(t=>`<tr><td>${esc(TOOL_L[t.k])}</td><td>ansiedad</td><td>${t.n}</td><td>−${r1(t.drop)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Todavía no usaste herramientas con medición antes y después.</p>'}
   </section>
@@ -578,33 +698,92 @@ const LIB_P=[
 VIEWS.mas=()=>{
   if(V.sub)return SUBS[V.sub]();
   const row=(v,t,d)=>`<button class="toolrow" data-a="sub" data-v="${v}"><span class="grow stack-s"><b>${t}</b><span class="muted small">${d}</span></span><span aria-hidden="true">›</span></button>`;
-  return `<header class="stack-s"><p class="eyebrow">Configuración y lectura</p><h1>Más</h1></header>
+  const cs=S.settings.contacts;
+  return `<header class="stack-s"><p class="eyebrow">Tu plan y tu red</p><h1>Más</h1></header>
   <div class="stack">
-    ${row('biblioteca','Biblioteca','Técnicas y referentes, en fichas breves')}
-    ${row('apoyo','Red de apoyo',S.settings.contact.name?esc(S.settings.contact.name):'Guardá a tu psicólogo o persona de confianza')}
-    ${row('alts','Mis acciones alternativas',S.settings.alts.length+' acciones para el SOS')}
-    ${row('recordatorios','Recordatorios','Avisos antes de tu franja de riesgo')}
+    ${row('miplan','Mi plan','Razones, señales, «si… entonces…» y entorno')}
+    ${row('comidas','Horarios de comida','Avisos e ideas que sacian')}
+    ${row('sesiones','Entre sesiones','Notas y resumen para tu psicólogo')}
+    ${row('apoyo','Red de apoyo',cs.length?esc(cs.map(c=>c.name).filter(Boolean).join(', ')):'Contactos y mensaje ya escrito')}
+    ${row('alts','Mis acciones alternativas',S.settings.alts.length+' acciones para el SOS y el modo crisis')}
+    ${row('biblioteca','Biblioteca','Técnicas, alimentación y referentes')}
+    ${row('gravedad','Cuándo pedir más ayuda','Señales de gravedad y opciones de tratamiento')}
+    ${row('recordatorios','Recordatorios','Avisos de comidas y de tu franja de riesgo')}
     ${row('datos','Respaldo de datos','Exportar e importar en JSON o CSV')}
     ${row('acerca','Sobre Pausa','Qué hace y qué no hace')}
   </div>`;
 };
+function contactsHTML(){
+  const cs=S.settings.contacts,msg=S.settings.message;
+  if(!cs.length)return `<div class="note"><p>Todavía no guardaste a nadie. Podés agregar a tu psicólogo o a una persona de confianza.</p><div class="row"><button class="btn sm soft" data-a="sub" data-v="apoyo">Agregar contacto</button></div></div>`;
+  return `<div class="stack">${cs.map(c=>{const d=(c.phone||'').replace(/\D/g,'');return `<div class="card"><div class="stack-s"><b>${esc(c.name||'Contacto')}</b>${c.phone?`<span class="num" style="user-select:all;font-size:1.15rem">${esc(c.phone)}</span>`:''}${c.note?`<span class="muted small">${esc(c.note)}</span>`:''}</div>${d?`<div class="row"><a class="btn sm primary" href="tel:${esc(c.phone.replace(/[^\d+]/g,''))}">Llamar</a><a class="btn sm soft" href="https://wa.me/${d}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp con mensaje</a></div>`:''}</div>`}).join('')}
+  <div class="note"><p class="eyebrow">Tu mensaje</p><p id="msg-txt">${esc(msg)}</p><div class="row"><button class="btn sm soft" data-a="copyMsg">Copiar mensaje</button></div></div>
+  <p class="hint">Si el botón no abre la llamada, marcá el número a mano. Si en algún momento pensás en hacerte daño, llamá a emergencias de tu país.</p></div>`;
+}
+function sessionSummary(){
+  const ss=S.settings.session,from=ss.last?new Date(ss.last+'T00:00').getTime():Date.now()-14*DAY,days=Math.max(1,Math.round((Date.now()-from)/DAY));
+  const Lg=S.log.filter(e=>e.ts>=from),cr=Lg.filter(e=>e.kind==='antojo'),a=analyze(days);
+  const prev=S.log.filter(e=>e.kind==='antojo'&&e.ts<from&&e.ts>=from-days*DAY);
+  const crs=Lg.filter(e=>e.kind==='crisis'&&e.before!=null),chains=Lg.filter(e=>e.kind==='cadena'),notes=S.notes.filter(n=>!n.done);
+  const nights=Object.entries(S.checkins).filter(([d,c])=>c.n&&new Date(d+'T12:00').getTime()>=from).map(([,c])=>c.n);
+  const o=[`Resumen de Pausa · ${dShort(from)} al ${dShort(Date.now())} (${days} días)`,''];
+  o.push(`Antojos registrados: ${cr.length} · intensidad media ${r1(avg(cr.map(e=>e.int)))}${prev.length?` (período anterior: ${r1(avg(prev.map(e=>e.int)))})`:''}`);
+  o.push(`Manejados con una herramienta: ${pct(a.managed)}`);
+  o.push(`Episodios con pérdida de control: ${cr.filter(e=>e.control==='si').length}`);
+  if(crs.length)o.push(`Modo crisis: ${crs.length} ${crs.length===1?'uso':'usos'} · bajó ${r1(avg(crs.map(e=>e.before-e.after)))} puntos en promedio`);
+  if(nights.length)o.push(`Ansiedad media del día: ${r1(avg(nights.map(n=>n.anx)))} · días con comidas en horario: ${nights.filter(n=>n.regular).length} de ${nights.length}`);
+  const ins=insights(a).slice(0,4);if(ins.length){o.push('','Patrones:');ins.forEach(x=>o.push('- '+x))}
+  if(chains.length){o.push('','Análisis en cadena:');chains.forEach(c=>o.push(`- ${dShort(c.ts)}: ${c.trig||'sin desencadenante anotado'}${c.cut?' → cortar en: '+c.cut:''}`))}
+  if(notes.length){o.push('','Mis notas:');notes.forEach(n=>o.push('- '+n.text))}
+  return o.join('\n');
+}
 const back=`<button class="link" data-a="sub" data-v="">‹ Más</button>`;
 const SUBS={
   biblioteca:()=>`${back}<header class="stack-s"><h1>Biblioteca</h1><p class="muted">Cada ficha dice de qué enfoque viene.</p></header>
+    <h2>Comer para tener menos antojos</h2><p class="muted small">Es estructura, no una dieta: no se cuentan calorías ni se prohíbe nada.</p><div class="stack">${FOOD.map(([t,e,c])=>`<details class="lib"><summary><span class="stack-s"><b>${t}</b><span class="muted small">${e}</span></span><span aria-hidden="true">+</span></summary><div class="body"><p>${c}</p></div></details>`).join('')}</div>
     <h2>Técnicas</h2><div class="stack">${LIB_T.map(([t,e,c,w])=>`<details class="lib"><summary><span class="stack-s"><b>${t}</b><span class="muted small">${e}</span></span><span aria-hidden="true">+</span></summary><div class="body"><p>${c}</p><p class="small"><b>Cuándo:</b> ${w}</p></div></details>`).join('')}</div>
     <h2>Referentes</h2><div class="card"><div class="list">${LIB_P.map(([n,r,b])=>`<div class="li"><div class="stack-s"><b>${n}</b><span class="muted small">${r}</span><span class="small"><i>${b}</i></span></div></div>`).join('')}</div></div>
     <p class="hint">Para trabajarlo con alguien: buscá un psicólogo con formación en TCC o DBT para conducta alimentaria.</p>`,
-  apoyo:()=>{const c=S.settings.contact;return `${back}<header class="stack-s"><h1>Red de apoyo</h1><p class="muted">Lo vas a tener a mano desde el SOS.</p></header>
-    <form class="card" id="f-contact"><div class="field"><label for="c-name">Nombre</label><input type="text" id="c-name" value="${esc(c.name)}" placeholder="Ej.: Lic. Martínez, o mi hermana"></div>
-    <div class="field"><label for="c-phone">Teléfono</label><input type="tel" id="c-phone" value="${esc(c.phone)}" placeholder="+54 9 11 …"></div>
-    <div class="field"><label for="c-note">Nota para vos</label><textarea id="c-note" placeholder="Ej.: puedo escribirle aunque sea tarde">${esc(c.note)}</textarea></div>
-    <button class="btn primary" type="submit">Guardar</button></form>
-    <div class="note"><p class="eyebrow">Cuándo consultar</p><p>Si los episodios con pérdida de control son frecuentes, si la tendencia empeora o si el tema te ocupa mucho espacio mental, lo que más resultado suele dar es trabajar con un profesional en conducta alimentaria. Pausa te lo va a señalar cuando tus datos lo muestren.</p></div>`},
+  apoyo:()=>{const cs=S.settings.contacts;return `${back}<header class="stack-s"><h1>Red de apoyo</h1><p class="muted">Las personas que podés llamar o escribir desde el modo crisis y el SOS. Hasta tres.</p></header>
+    <div class="card">${cs.length?`<div class="list">${cs.map((c,i)=>`<div class="li"><div class="grow stack-s"><b>${esc(c.name||'Contacto')}</b><span class="muted small num">${esc(c.phone)}${c.note?' · '+esc(c.note):''}</span></div><button class="btn sm ghost" data-a="cDel" data-v="${i}">Quitar</button></div>`).join('')}</div>`:'<p class="muted">Todavía no agregaste a nadie.</p>'}
+    ${cs.length<3?`<form id="f-contact" class="stack"><div class="field"><label for="c-name">Nombre</label><input type="text" id="c-name" placeholder="Ej.: Lic. Martínez, o mi hermana"></div><div class="field"><label for="c-phone">Teléfono</label><input type="tel" id="c-phone" placeholder="+54 9 11 …"></div><div class="field"><label for="c-note">Quién es</label><input type="text" id="c-note" placeholder="Ej.: mi psicóloga, mi amigo"></div><button class="btn primary" type="submit">Agregar contacto</button></form>`:''}</div>
+    <form class="card" id="f-msg"><div class="field"><label for="m-txt">Mensaje ya escrito</label><textarea id="m-txt">${esc(S.settings.message)}</textarea><p class="hint">Se manda con un toque desde el modo crisis. Escribilo ahora, con calma, para no tener que pensarlo en el momento difícil.</p></div><button class="btn soft" type="submit">Guardar mensaje</button></form>`},
+  miplan:()=>{const R=S.relapse;
+    const listEd=(key,title,hint,ph)=>`<section class="card"><div class="stack-s"><h2>${title}</h2><p class="muted small">${hint}</p></div>
+      ${R[key].length?`<div class="list">${R[key].map((x,i)=>`<div class="li"><span class="grow">${esc(x)}</span><button class="btn sm ghost" data-a="lsDel" data-v="${key}:${i}">Quitar</button></div>`).join('')}</div>`:''}
+      <form class="row" data-list="${key}"><input type="text" aria-label="${title}" placeholder="${ph}" style="flex:1;min-width:0"><button class="btn soft" type="submit">Agregar</button></form>
+      ${SUG[key].some(x=>!R[key].includes(x))?`<div class="stack-s"><span class="hint">Ideas para sumar:</span><div class="chips">${SUG[key].map((x,i)=>R[key].includes(x)?'':`<button class="chip" data-a="lsAdd" data-v="${key}:${i}">+ ${esc(x)}</button>`).join('')}</div></div>`:''}</section>`;
+    return `${back}<header class="stack-s"><h1>Mi plan</h1><p class="muted">Tu plan de prevención de recaídas. Lo armás con calma y lo usás en los momentos difíciles: el modo crisis te lo muestra.</p></header>
+    ${listEd('reasons','Mis razones','Por qué querés salir de esto. Las vas a leer en el modo crisis.','Ej.: quiero estar en calma a la noche')}
+    ${listEd('signals','Señales tempranas','Lo que aparece antes de un episodio. Detectarlas a tiempo te da margen.','Ej.: salteo el almuerzo')}
+    ${listEd('risks','Situaciones de riesgo','Lugares, horarios o momentos donde es más difícil.','Ej.: noches en casa sin plan')}
+    <section class="card"><div class="stack-s"><h2>Si… entonces…</h2><p class="muted small">Decidir de antemano qué vas a hacer en una situación concreta. En el momento difícil no hay que pensar: solo seguir el plan.</p></div>
+      ${R.ifthen.length?`<div class="list">${R.ifthen.map((x,i)=>`<div class="li"><div class="grow ifthen"><p><span class="muted">Si</span> ${esc(x.if)},</p><p><span class="muted">entonces</span> <b>${esc(x.then)}</b>.</p></div><button class="btn sm ghost" data-a="ifDel" data-v="${i}">Quitar</button></div>`).join('')}</div>`:''}
+      <form id="f-ifthen" class="stack"><div class="field"><label for="if-a">Si…</label><input type="text" id="if-a" placeholder="Ej.: salgo del trabajo con antojo"></div><div class="field"><label for="if-b">entonces…</label><input type="text" id="if-b" placeholder="Ej.: tomo otro camino y como mi merienda"></div><button class="btn soft" type="submit">Agregar</button></form>
+      ${SUG_IF.some(x=>!R.ifthen.some(y=>y.if===x[0]))?`<div class="stack-s"><span class="hint">Ideas para sumar:</span><div class="chips">${SUG_IF.map((x,i)=>R.ifthen.some(y=>y.if===x[0])?'':`<button class="chip" data-a="ifAdd" data-v="${i}">+ Si ${esc(x[0])}…</button>`).join('')}</div></div>`:''}</section>
+    <section class="card"><div class="stack-s"><h2>Mi entorno</h2><p class="muted small">No se trata de prohibir, sino de que el entorno juegue a tu favor. Marcá lo que ya hacés o querés empezar a hacer.</p></div>
+      ${ENV.map(([g,items])=>`<div class="stack-s"><h3>${g}</h3>${items.map(([id,t])=>`<label class="envrow"><input type="checkbox" data-a="env" data-v="${id}" ${R.envOn[id]?'checked':''}><span>${t}</span></label>`).join('')}</div>`).join('')}
+      ${R.envCustom.length?`<div class="list">${R.envCustom.map((x,i)=>`<div class="li"><span class="grow">${esc(x)}</span><button class="btn sm ghost" data-a="lsDel" data-v="envCustom:${i}">Quitar</button></div>`).join('')}</div>`:''}
+      <form class="row" data-list="envCustom"><input type="text" aria-label="Otra idea para tu entorno" placeholder="Otra idea propia" style="flex:1;min-width:0"><button class="btn soft" type="submit">Agregar</button></form></section>`},
+  comidas:()=>`${back}<header class="stack-s"><h1>Horarios de comida</h1><p class="muted">Comer en horarios regulares es uno de los primeros pasos de la TCC para comer sin control. Solo se registra el horario, nunca la cantidad.</p></header>
+    <form class="card" id="f-meals"><div class="list">${S.settings.meals.map(m=>`<div class="li mealrow"><input type="checkbox" id="m-on-${m.id}" ${m.on?'checked':''} aria-label="Usar ${m.n}"><label for="m-on-${m.id}"><b>${m.n}</b></label><input type="time" id="m-t-${m.id}" value="${m.t}" aria-label="Hora de ${m.n}"></div>`).join('')}</div>
+    <p class="hint">Tratá de no dejar más de 3 o 4 horas entre una comida y la siguiente.</p><button class="btn primary" type="submit">Guardar horarios</button></form>
+    <div class="card"><h2>Ideas que sacian</h2><p class="muted small">Con proteína, fibra o grasas buenas. Son ejemplos, no un menú obligatorio.</p>${S.settings.meals.map(m=>`<div class="stack-s"><h3>${m.n}</h3><ul style="margin:0;padding-left:1.1em" class="stack-s">${(IDEAS[m.id]||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>`,
+  sesiones:()=>{const ss=S.settings.session,notes=S.notes.filter(n=>!n.done);return `${back}<header class="stack-s"><h1>Entre sesiones</h1><p class="muted">Tu psicólogo te ve una vez por semana o cada quince días. Pausa te acompaña los días del medio y te ayuda a llegar a la sesión con lo importante.</p></header>
+    <form class="card" id="f-ses"><div class="row"><div class="field grow"><label for="ses-next">Próxima sesión</label><input type="date" id="ses-next" value="${esc(ss.next)}"></div><div class="field"><label for="ses-freq">Frecuencia</label><select id="ses-freq">${[[7,'Semanal'],[14,'Quincenal'],[30,'Mensual']].map(([v,l])=>`<option value="${v}" ${+ss.freq===v?'selected':''}>${l}</option>`).join('')}</select></div></div><button class="btn soft" type="submit">Guardar</button></form>
+    <div class="card"><h2>Para llevar a la sesión</h2>${notes.length?`<div class="list">${notes.map(n=>`<div class="li"><span class="t">${dShort(n.ts)}</span><span class="grow">${esc(n.text)}</span><button class="btn sm ghost" data-a="noteDel" data-v="${n.id}">Quitar</button></div>`).join('')}</div>`:'<p class="muted">Todavía no hay notas. Anotá lo que quieras contar o preguntar apenas te pase.</p>'}
+      <form id="f-note" class="stack"><textarea id="note-txt" aria-label="Nueva nota" placeholder="Ej.: el martes tuve un episodio después de discutir; quiero ver qué hacer con eso"></textarea><button class="btn soft" type="submit">Agregar nota</button></form></div>
+    <div class="card"><h2>Resumen desde la última sesión</h2><textarea id="exp-txt" class="mono" readonly style="min-height:240px">${esc(sessionSummary())}</textarea><div class="row"><button class="btn sm primary" data-a="copy">Copiar</button></div><p class="hint">Mostralo en la sesión o mandáselo antes. Vos decidís qué compartir.</p></div>
+    <div class="card"><button class="btn" data-a="sesDone">Ya tuve la sesión</button><p class="hint">Archiva las notas y calcula la fecha de la próxima según la frecuencia.</p></div>`},
+  gravedad:()=>`${back}<header class="stack-s"><h1>Cuándo pedir más ayuda</h1><p class="muted">Pausa es para todos los días. Un profesional hace lo que una app no puede: entender tu historia, ajustar el tratamiento y acompañarte en lo difícil.</p></header>
+    <div class="card"><h2>Consultá pronto si…</h2><ul style="margin:0;padding-left:1.1em" class="stack-s"><li>Tenés episodios con pérdida de control una vez por semana o más, durante varias semanas.</li><li>Comés a escondidas o sentís mucha culpa o vergüenza después.</li><li>Compensás: salteás comidas, vomitás, usás laxantes o hacés ejercicio de más.</li><li>El tema ocupa gran parte de tu día o de tu cabeza.</li><li>Sentís que no hay salida.</li></ul></div>
+    <div class="card"><h2>Qué buscar</h2><div class="list"><div class="li"><div class="stack-s"><b>Psicólogo con formación en TCC o DBT</b><span class="muted small">Para conducta alimentaria. Es el tratamiento con más evidencia.</span></div></div><div class="li"><div class="stack-s"><b>Psiquiatra</b><span class="muted small">Si los episodios son frecuentes. Hay medicamentos aprobados para el trastorno por atracón que puede evaluar con vos.</span></div></div><div class="li"><div class="stack-s"><b>Nutricionista con enfoque no dietante</b><span class="muted small">Para armar horarios y comidas que sacien, sin restricción.</span></div></div></div></div>
+    <div class="note warn"><p class="eyebrow">Urgencias</p><p>Si en algún momento pensás en hacerte daño, llamá a emergencias de tu país o andá a la guardia más cercana.</p></div>`,
   alts:()=>`${back}<header class="stack-s"><h1>Acciones alternativas</h1><p class="muted">Cosas concretas que podés hacer en lugar de comer cuando el antojo es emocional. Las ves al final del SOS.</p></header>
     <div class="card"><div class="list">${S.settings.alts.map((a,i)=>`<div class="li"><span class="grow">${esc(a)}</span><button class="btn sm ghost" data-a="altDel" data-v="${i}">Quitar</button></div>`).join('')||'<p class="muted">No tenés acciones guardadas.</p>'}</div>
     <form id="f-alt" class="row"><input type="text" id="alt-in" class="grow" placeholder="Nueva acción" style="flex:1;min-width:0"><button class="btn soft" type="submit">Agregar</button></form></div>`,
   recordatorios:()=>{const rw=riskWindow();const perm=('Notification' in window)?Notification.permission:'unsupported';return `${back}<header class="stack-s"><h1>Recordatorios</h1></header>
-    <div class="card"><p>${rw?`Tu franja de mayor antojo es <b>${rw.peak.start}–${rw.peak.end} h</b>. El recordatorio sugerido es a las <b class="num">${pad(rw.h)}:${pad(rw.m)}</b>.`:'Todavía no hay una franja de riesgo clara. Hacen falta al menos 5 antojos en las últimas dos semanas.'}</p>
+    <div class="card"><p>Pausa te avisa a la hora de cada comida y 30 minutos antes de tu franja de riesgo.</p><p>${rw?`Tu franja de mayor antojo es <b>${rw.peak.start}–${rw.peak.end} h</b>. El recordatorio sugerido es a las <b class="num">${pad(rw.h)}:${pad(rw.m)}</b>.`:'Todavía no hay una franja de riesgo clara. Hacen falta al menos 5 antojos en las últimas dos semanas.'}</p>
     <p class="muted small">Dentro de la app, durante esa franja, el inicio te muestra un aviso con una pausa de un minuto.</p>
     ${IS_PWA?`<button class="btn soft" data-a="notify">${perm==='granted'?'Notificaciones activadas':'Activar notificaciones'}</button><p class="hint">En esta versión de prueba el aviso llega si la app está abierta o en segundo plano. Los avisos con la app cerrada llegan en la versión final.</p>`:`<p class="hint">Las notificaciones del sistema funcionan cuando instalás Pausa en el celular (ver instrucciones en la carpeta del proyecto). En esta vista previa se usa solo el aviso dentro de la app.</p>`}</div>`},
   datos:()=>`${back}<header class="stack-s"><h1>Respaldo de datos</h1><p class="muted">Tus datos se guardan solo en este dispositivo. Exportalos de vez en cuando.</p></header>
@@ -617,7 +796,7 @@ const SUBS={
   acerca:()=>`${back}<header class="stack-s"><h1>Sobre Pausa</h1></header>
     <div class="card"><p>Pausa te ayuda a registrar antojos sin juicio, ver tus patrones, manejar el impulso en el momento y bajar la ansiedad. Se basa en TCC (Fairburn, Beck), DBT (Safer), ACT, MB-EAT (Kristeller) y el trabajo de Judson Brewer.</p>
     <p><b>Lo que no hace:</b> no cuenta calorías, no fija metas de peso, no propone dietas ni ayunos, y nunca sugiere compensar después de comer.</p>
-    <p class="muted small">Es una herramienta de autogestión. No reemplaza a un profesional.</p><p class="muted small">Prototipo v0.1</p></div>`
+    <p class="muted small">Es una herramienta de autogestión. No reemplaza a un profesional.</p><p class="muted small">Pausa te acompaña todos los días, entre sesión y sesión: no ocupa el lugar del profesional, le llega con información.</p><p class="muted small">Prototipo v0.2</p></div>`
 };
 
 function render(scrollTop){
@@ -627,10 +806,18 @@ function render(scrollTop){
   bindForms();
 }
 function bindForms(){
-  const fc=$('#f-contact');if(fc)fc.onsubmit=e=>{e.preventDefault();S.settings.contact={name:$('#c-name').value.trim(),phone:$('#c-phone').value.trim(),note:$('#c-note').value.trim()};save();toast('Contacto guardado')};
-  const fa=$('#f-alt');if(fa)fa.onsubmit=e=>{e.preventDefault();const v=$('#alt-in').value.trim();if(!v)return;S.settings.alts.push(v);save();render()};
+  const on=(id,fn)=>{const f=$('#'+id);if(f)f.onsubmit=e=>{e.preventDefault();fn(f)}};
+  on('f-contact',()=>{const name=$('#c-name').value.trim(),phone=$('#c-phone').value.trim();if(!name&&!phone){toast('Escribí al menos un nombre o un teléfono');return}S.settings.contacts.push({name,phone,note:$('#c-note').value.trim()});save();toast('Contacto agregado');render()});
+  on('f-msg',()=>{S.settings.message=$('#m-txt').value.trim()||DEFAULT_MSG;save();toast('Mensaje guardado')});
+  on('f-alt',()=>{const v=$('#alt-in').value.trim();if(!v)return;S.settings.alts.push(v);save();render()});
+  on('f-ifthen',()=>{const a=$('#if-a').value.trim(),b=$('#if-b').value.trim();if(!a||!b){toast('Completá las dos partes');return}S.relapse.ifthen.push({if:a,then:b});save();render()});
+  on('f-meals',()=>{S.settings.meals.forEach(m=>{m.on=$('#m-on-'+m.id).checked;const t=$('#m-t-'+m.id).value;if(t)m.t=t});save();getPlan(true);scheduleReminder();toast('Horarios guardados')});
+  on('f-ses',()=>{S.settings.session.next=$('#ses-next').value;S.settings.session.freq=+$('#ses-freq').value;save();toast('Sesión guardada');render()});
+  on('f-note',()=>{const t=$('#note-txt').value.trim();if(!t)return;addNote(t);toast('Nota guardada');render()});
+  $$('form[data-list]').forEach(f=>{f.onsubmit=e=>{e.preventDefault();const v=$('input',f).value.trim();if(!v)return;S.relapse[f.dataset.list].push(v);save();render()}});
   const ff=$('#imp-file');if(ff)ff.onchange=()=>{const f=ff.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#imp-txt').value=r.result};r.readAsText(f)};
 }
+function addNote(text){S.notes.push({id:uid(),ts:Date.now(),text,done:false});save()}
 
 /* ---------- Pantallas superpuestas ---------- */
 const ov=$('#ov');
@@ -658,6 +845,7 @@ function saveLog(next){
   if(did==='dulce'&&FORM.control)e.control=FORM.control;
   S.log.push(e);save();
   if(next==='sos'){openSOS(e);return}
+  if(did==='dulce'&&(e.control==='si'||e.control==='algo')){openPost(e);return}
   if(did==='dulce'){openOv(`${head('Quedó registrado')}<div class="note"><p>Es un dato más para entender tu patrón.</p><p>Tu próxima comida va en su horario de siempre, sin saltearla ni compensar. Saltear comidas suele aumentar el antojo después.</p></div>
     <div class="card"><p class="lab">Si querés, en un rato podés probar:</p><div class="stack"><button class="btn soft" data-a="tool" data-v="defu">Defusión: «ya arruiné el día»</button><button class="btn soft" data-a="tool" data-v="resp">Respiración lenta</button></div></div>
     <div class="footer-btns"><button class="btn primary block" data-a="close">Volver al inicio</button></div>`);return}
@@ -675,8 +863,8 @@ function openSOS(linked){
 function renderSOS(){
   clearTimers();
   const s=SOS.step,dots=`<div class="steps" aria-label="Paso ${s+1} de ${SOS_STEPS}">${Array.from({length:SOS_STEPS},(_,i)=>`<i class="${i<=s?'on':''}"></i>`).join('')}</div>`;
-  const c=S.settings.contact;
-  const contact=c.phone||c.name?`<button class="btn sm ghost" data-a="sosContact">${ic('phone')} ${esc(c.name||'Mi contacto')}</button>`:'';
+  const cs=S.settings.contacts;
+  const contact=cs.length?`<button class="btn sm ghost" data-a="sosContact">${ic('phone')} ${esc(cs[0].name||'Mi contacto')}</button>`:'';
   const titles=['Nombrá el antojo','Surfeá el impulso','Respirá','Mirá con curiosidad','Elegí una acción','¿Cómo está el antojo ahora?','Resultado'];
   let body='',next='Seguir';
   if(s===0)body=`<p class="muted">Ponerle nombre ya crea un poco de distancia.</p><div class="field"><label for="sos-what">Tengo ganas de…</label><input type="text" id="sos-what" value="${esc(SOS.what)}" placeholder="Ej.: algo de chocolate"></div><div class="field"><span class="lab">¿Qué tan fuerte es ahora?</span>${scale('before')}</div>`;
@@ -744,6 +932,8 @@ function openCheckin(which){
   const c=S.checkins[dk(Date.now())]||{};const prev=c[which]||{};
   FORM=which==='m'?{sleep:prev.sleep&&String(prev.sleep),stress:prev.stress&&String(prev.stress),energy:prev.energy&&String(prev.energy)}:{anx:prev.anx&&String(prev.anx),regular:prev.regular==null?null:prev.regular?'si':'no',tool:prev.tool};
   FORM.which=which;
+  const mst=mealState(),mdone=mst.ms.filter(x=>mst.done[x.id]).length;
+  if(which==='n'&&FORM.regular==null&&mst.ms.length&&mdone===mst.ms.length)FORM.regular='si';
   openOv(which==='m'?`${head('Check-in de la mañana','<span class="eyebrow">Menos de un minuto</span>')}
     <div class="field"><span class="lab">¿Cómo dormiste?</span>${scale5('sleep',['Muy mal','Mal','Regular','Bien','Muy bien'])}</div>
     <div class="field"><span class="lab">Estrés que esperás para hoy</span>${scale5('stress',['Muy bajo','Bajo','Medio','Alto','Muy alto'])}</div>
@@ -751,7 +941,7 @@ function openCheckin(which){
     <div class="footer-btns"><button class="btn primary block" data-a="saveCheckin">Guardar</button></div>`
   :`${head('Check-in de la noche','<span class="eyebrow">Menos de un minuto</span>')}
     <div class="field"><span class="lab">Ansiedad del día</span>${scale('anx','poca','muchísima')}</div>
-    <div class="field"><span class="lab">¿Comiste en horarios regulares?</span>${chips('regular',[['si','Sí'],['no','No']])}<p class="hint">Solo horarios. No hace falta pensar en cantidades.</p></div>
+    <div class="field"><span class="lab">¿Comiste en horarios regulares?</span>${chips('regular',[['si','Sí'],['no','No']])}<p class="hint">Solo horarios. No hace falta pensar en cantidades.${mst.ms.length?` Hoy marcaste ${mdone} de ${mst.ms.length} comidas.`:''}</p></div>
     <div class="field"><span class="lab">¿Qué herramienta te funcionó hoy?</span>${chips('tool',[['sos','SOS antojo'],['surf','Urge surfing'],['resp','Respiración'],['ground','Grounding'],['tcc','Registro de pensamiento'],['stop','STOP / TIPP'],['defu','Defusión'],['alt','Acción alternativa'],['ninguna','Ninguna']])}</div>
     <div class="footer-btns"><button class="btn primary block" data-a="saveCheckin">Guardar</button></div>`);
 }
@@ -764,12 +954,109 @@ function saveCheckin(){
   toast(FORM.which==='m'?'Check-in guardado. El plan de hoy se actualizó.':'Check-in guardado');closeOv();
 }
 
+/* Modo crisis */
+let CR=null;
+function openCrisis(){clearTimers();FORM={};CR={step:'choose',path:null,i:0,t0:null,dur:600};renderCrisis()}
+function crTick(){
+  const el=$('#cr-t');if(!el||!CR||CR.step!=='solo')return;
+  const left=Math.max(0,CR.dur-(Date.now()-CR.t0)/1000);
+  el.textContent=`${Math.floor(left/60)}:${pad(Math.floor(left%60))}`;
+  const b=$('#cr-b');if(b)b.style.width=(100-left/CR.dur*100).toFixed(1)+'%';
+  if(left<=0){const d=$('#cr-done');if(d)d.hidden=false;return}
+  later(crTick,1000);
+}
+function renderCrisis(){
+  clearTimers();
+  let title='Modo crisis',eb='<span class="eyebrow">Antojo muy fuerte</span>',body='',foot='';
+  if(CR.step==='choose'){const cs=S.settings.contacts;
+    body=`<p style="font-size:1.15rem">Este impulso va a bajar. Tu único trabajo ahora es ganar 10 minutos.</p>
+    <div class="choice"><button class="btn primary" data-a="crPath" data-v="solo">Lo resuelvo yo<small>Guía de 10 minutos, un paso por vez</small></button>
+    <button class="btn" data-a="crPath" data-v="persona">Hablar con alguien<small>${cs.length?esc(cs.map(c=>c.name).filter(Boolean).join(', ')):'Llamar o mandar tu mensaje ya escrito'}</small></button></div>
+    <p class="hint">Podés usar las dos: mandá el mensaje y, mientras esperás la respuesta, empezá la guía.</p>`}
+  if(CR.step==='persona'){title='Hablar con alguien';body=contactsHTML();foot=`<button class="btn primary block" data-a="crPath" data-v="solo">Empezar la guía mientras espero</button>`}
+  if(CR.step==='solo'){
+    const st=CRISIS[CR.i],last=CR.i===CRISIS.length-1;title=st.t;eb=`<span class="eyebrow">Paso ${CR.i+1} de ${CRISIS.length}</span>`;
+    let extra='';
+    if(st.breath)extra=breathHTML(st.breath);
+    if(st.reasons){const R=S.relapse.reasons;extra=R.length?`<div class="stack">${R.map(r=>`<div class="note accent"><p style="font-size:1.1rem">${esc(r)}</p></div>`).join('')}</div>`:`<p class="muted">Todavía no escribiste tus razones. Escribí una ahora, en una línea: ¿por qué querés salir de esto?</p><div class="row"><input type="text" id="cr-reason" aria-label="Tu razón" style="flex:1;min-width:0" placeholder="Ej.: quiero estar en calma a la noche"><button class="btn soft" data-a="crReason">Guardar</button></div>`}
+    if(st.ifthen){const R=S.relapse.ifthen,list=R.length?R:SUG_IF.map(x=>({if:x[0],then:x[1]}));extra=`${R.length?'':'<p class="muted small">Todavía no armaste tu plan. Estos son ejemplos; podés armar el tuyo en Más → Mi plan.</p>'}<div class="stack">${list.map(x=>`<div class="card ifthen"><p><span class="muted">Si</span> ${esc(x.if)},</p><p><span class="muted">entonces</span> <b>${esc(x.then)}</b>.</p></div>`).join('')}</div>`}
+    if(st.alts)extra=chips('alt',S.settings.alts.map(a=>[a,a]));
+    body=`<div class="stack-s"><div class="row between"><span class="timer" id="cr-t">10:00</span><span class="muted small">para que baje</span></div><div class="bar-p"><i id="cr-b" style="width:0"></i></div></div>
+    <div class="stack">${st.d?`<p style="font-size:1.1rem">${st.d}</p>`:''}${st.warn?`<p class="hint">${st.warn}</p>`:''}${extra}<p class="hint">${st.src}</p></div>
+    <div id="cr-done" class="note accent" hidden><p><b>Pasaron 10 minutos.</b> Fijate cómo está el antojo ahora.</p></div>`;
+    foot=last?`<button class="btn primary block" data-a="crEnd">Ver cómo está el antojo</button>`:`<button class="btn primary block" data-a="crNext">Hecho, siguiente</button><button class="btn block" data-a="crEnd">Ya bajó, terminar</button>`;
+  }
+  if(CR.step==='end'){title='¿Cómo está ahora?';eb='<span class="eyebrow">Modo crisis</span>';
+    body=`<div class="field"><span class="lab">¿Qué tan fuerte era al empezar?</span>${scale('before')}</div><div class="field"><span class="lab">¿Y ahora?</span>${scale('after')}</div><div class="field"><span class="lab">¿Qué pasó?</span>${chips('outcome',OUTCOME)}</div>`;
+    foot=`<button class="btn primary block" data-a="crSave">Guardar</button>`}
+  if(CR.step==='done'){const{b,a}=CR.res,d=b-a;title='Resultado';eb='<span class="eyebrow">Modo crisis</span>';
+    body=`<div class="card"><div class="row" style="gap:24px"><div class="stack-s"><span class="eyebrow">Al empezar</span><span class="big-num">${b}</span></div><span class="muted" aria-hidden="true">→</span><div class="stack-s"><span class="eyebrow">Ahora</span><span class="big-num">${a}</span></div></div>
+    <p>${d>0?`Bajó ${d} ${d===1?'punto':'puntos'}. El impulso subió y bajó sin que lo obedecieras.`:'Sigue alto. Podés hacer otros 10 minutos o hablar con alguien.'}</p></div>`;
+    foot=`<button class="btn primary block" data-a="close">Volver al inicio</button><button class="btn block" data-a="crPath" data-v="solo">Otros 10 minutos</button><button class="btn block" data-a="crPath" data-v="persona">Hablar con alguien</button>`}
+  openOv(`${head(title,eb)}<div class="stack">${body}</div>${foot?`<div class="footer-btns">${foot}</div>`:''}`);
+  if(CR.step==='solo')crTick();
+}
+function crSave(){
+  if(!FORM.before||!FORM.after||!FORM.outcome){toast('Completá las tres respuestas');return}
+  const now=Date.now(),t0=CR.t0||now;
+  S.log.push({id:uid(),kind:'crisis',ts:now,before:+FORM.before,after:+FORM.after,path:CR.path||'solo',outcome:FORM.outcome,alt:FORM.alt||null,min:Math.max(0,Math.round((now-t0)/6e4))});
+  const e={id:uid(),kind:'antojo',ts:t0,int:+FORM.before,did:FORM.outcome==='episodio'?'dulce':'crisis'};
+  if(FORM.outcome==='episodio')e.control='si';
+  S.log.push(e);save();
+  if(FORM.outcome==='episodio'){openPost(e);return}
+  CR.res={b:+FORM.before,a:+FORM.after};CR.step='done';renderCrisis();
+}
+
+/* Después de un episodio */
+function openPost(ep){
+  clearTimers();FORM={};
+  S.pendingChain={id:ep.id,ts:ep.ts};save();
+  const nx=mealState().next;
+  const li=(t,d)=>`<div class="li"><div class="stack-s"><b>${t}</b><span>${d}</span></div></div>`;
+  openOv(`${head('Ya pasó. Ahora, lo que sigue','<span class="eyebrow">Después de un episodio</span>')}
+  <p>Quedó registrado como un dato. Lo que hagas en las próximas horas pesa más que lo que ya pasó.</p>
+  <div class="card"><div class="list">
+    ${li('No compenses','No saltees la próxima comida ni hagas ejercicio de más. Compensar alimenta el ciclo de restricción y descontrol.')}
+    ${li('Tu próxima comida',nx?`${esc(nx.n)} a las ${nx.t}. Hacela aunque no tengas mucha hambre.`:'Volvé a tu horario habitual en la próxima comida.')}
+    ${li('El «ya fue»','Pensar «ya arruiné el día, sigo» es parte del ciclo, no un hecho. Un episodio no arruina el día ni la semana.')}
+    ${li('Cómo te hablás','Hablate como le hablarías a un amigo en tu lugar.')}
+  </div></div>
+  <div class="footer-btns"><button class="btn primary block" data-a="chain">Entender qué pasó (5 min)</button><button class="btn block" data-a="tool" data-v="defu">Trabajar el «ya fue»</button><button class="btn block" data-a="crPersona">Hablar con alguien</button><button class="btn ghost" data-a="close">Lo hago más tarde</button></div>`);
+}
+
+/* Análisis en cadena (DBT) */
+function openChain(){
+  clearTimers();FORM={vuln:[]};const ep=S.pendingChain;
+  openOv(`${head('Análisis en cadena',`<span class="eyebrow">DBT${ep?' · episodio del '+dShort(ep.ts)+', '+hm(ep.ts):''}</span>`)}
+  <p class="muted">Recorré el episodio como una cadena de eslabones. La idea es encontrar dónde podés cortarla la próxima vez, no juzgarte.</p>
+  <div class="field"><span class="lab">¿Qué te dejó más vulnerable ese día?</span>${chips('vuln',VULN.map(v=>[v,v]),{multi:true})}</div>
+  <div class="field"><label for="ch-trig">¿Qué pasó justo antes?</label><textarea id="ch-trig" placeholder="Ej.: salí del trabajo y pasé por el kiosco"></textarea></div>
+  <div class="field"><label for="ch-links">Los eslabones, en orden</label><textarea id="ch-links" placeholder="Pensamientos, emociones, sensaciones. Ej.: cansancio → «me lo merezco» → ansiedad → compré"></textarea></div>
+  <div class="field"><label for="ch-after">¿Qué pasó después? ¿Cómo te sentiste?</label><textarea id="ch-after"></textarea></div>
+  <div class="field"><label for="ch-cut">¿Dónde podrías cortar la cadena la próxima vez?</label><textarea id="ch-cut" placeholder="Ej.: comer la merienda antes de salir del trabajo"></textarea></div>
+  <label class="envrow"><input type="checkbox" id="ch-plan" checked><span>Agregarlo a mi plan como «si… entonces…»</span></label>
+  <label class="envrow"><input type="checkbox" id="ch-ses" checked><span>Llevarlo a mi próxima sesión</span></label>
+  <div class="footer-btns"><button class="btn primary block" data-a="chainSave">Guardar</button></div>`);
+}
+function chainSave(){
+  const g=id=>$('#'+id).value.trim(),ep=S.pendingChain;
+  const c={id:uid(),kind:'cadena',ts:Date.now(),ep:ep&&ep.id,vuln:FORM.vuln||[],trig:g('ch-trig'),links:g('ch-links'),after:g('ch-after'),cut:g('ch-cut')};
+  if(!c.trig&&!c.links&&!c.cut){toast('Completá al menos qué pasó antes o dónde cortar');return}
+  S.log.push(c);
+  if($('#ch-plan').checked&&c.trig&&c.cut)S.relapse.ifthen.push({if:c.trig,then:c.cut});
+  if($('#ch-ses').checked)addNote(`Episodio del ${dShort(ep?ep.ts:c.ts)}: `+[c.vuln.length?'vulnerable por '+c.vuln.join(', ').toLowerCase():'',c.trig?'antes: '+c.trig:'',c.cut?'cortar en: '+c.cut:''].filter(Boolean).join(' · '));
+  S.pendingChain=null;save();toast('Análisis guardado');closeOv();
+}
+
+/* Nota rápida para la sesión */
+function openNote(){FORM={};openOv(`${head('Nota para la sesión','<span class="eyebrow">Entre sesiones</span>')}<div class="field"><label for="note-in">¿Qué querés contarle o preguntarle a tu psicólogo?</label><textarea id="note-in" placeholder="Ej.: el martes tuve un episodio después de discutir; quiero ver qué hacer con eso"></textarea></div><div class="footer-btns"><button class="btn primary block" data-a="noteSave">Guardar</button></div>`)}
+
 /* Exportar / importar */
 function toCSV(){
-  const cols=['fecha','hora','tipo','intensidad','emocion','situacion','hambre','que_hice','perdida_control','antes','despues','herramienta','accion_alternativa','sueno','estres','energia','ansiedad_dia','horarios_regulares'];
+  const cols=['fecha','hora','tipo','intensidad','emocion','situacion','hambre','que_hice','perdida_control','antes','despues','herramienta','accion_alternativa','sueno','estres','energia','ansiedad_dia','horarios_regulares','detalle'];
   const q=v=>{v=v==null?'':String(v);return /[",\n;]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  const rows=S.log.map(e=>[dk(e.ts),hm(e.ts),e.kind,e.int,e.emo,e.sit,e.hunger,e.did,e.control,e.before,e.after,e.tool,e.alt,'','','','','']);
-  Object.entries(S.checkins).sort().forEach(([d,c])=>{if(c.m)rows.push([d,'','checkin_manana','','','','','','','','','','',c.m.sleep,c.m.stress,c.m.energy,'','']);if(c.n)rows.push([d,'','checkin_noche','','','','','','','','',c.n.tool||'','','','','',c.n.anx,c.n.regular?'si':'no'])});
+  const rows=S.log.map(e=>[dk(e.ts),hm(e.ts),e.kind,e.int,e.emo,e.sit,e.hunger,e.did,e.control,e.before,e.after,e.tool,e.alt,'','','','','',e.kind==='crisis'?`${e.path}/${e.outcome}`:e.kind==='cadena'?`${e.trig||''} → ${e.cut||''}`:'']);
+  Object.entries(S.checkins).sort().forEach(([d,c])=>{if(c.m)rows.push([d,'','checkin_manana','','','','','','','','','','',c.m.sleep,c.m.stress,c.m.energy,'','','']);if(c.n)rows.push([d,'','checkin_noche','','','','','','','','',c.n.tool||'','','','','',c.n.anx,c.n.regular?'si':'no',''])});
   return [cols.join(','),...rows.map(r=>r.map(q).join(','))].join('\n');
 }
 let expKind='json';
@@ -785,7 +1072,29 @@ const ACT={
   sos:()=>openSOS(null),
   sosNext:v=>sosNext(v==='skip'),
   sosAgain:()=>{SOS.step=1;renderSOS()},
-  sosContact:()=>{const c=S.settings.contact;const box=document.createElement('div');box.className='note';box.innerHTML=`<p class="eyebrow">Tu contacto</p><p><b>${esc(c.name||'Contacto')}</b></p>${c.phone?`<p class="num" style="user-select:all;font-size:1.2rem">${esc(c.phone)}</p><div class="row"><a class="btn sm soft" href="tel:${esc(c.phone.replace(/[^\d+]/g,''))}">Llamar</a><a class="btn sm soft" href="https://wa.me/${esc(c.phone.replace(/\D/g,''))}" target="_blank" rel="noopener">WhatsApp</a></div>`:''}${c.note?`<p class="muted">${esc(c.note)}</p>`:''}`;const sb=$('#sos-body');const old=$('#ov .note.contact');if(old){old.remove();return}box.classList.add('contact');sb.before(box)},
+  sosContact:()=>{const old=$('#ov .sos-contacts');if(old){old.remove();return}const box=document.createElement('div');box.className='sos-contacts';box.innerHTML=contactsHTML();$('#sos-body').before(box)},
+  crisis:()=>openCrisis(),
+  crPath:v=>{if(v==='solo'){CR.path=CR.path==='persona'||CR.path==='ambos'?'ambos':'solo';CR.step='solo';CR.i=0;CR.t0=Date.now()}else{CR.path=CR.path==='solo'?'ambos':'persona';CR.step='persona'}renderCrisis()},
+  crNext:()=>{if(CR.i<CRISIS.length-1){CR.i++;renderCrisis()}},
+  crEnd:()=>{CR.step='end';renderCrisis()},
+  crSave:()=>crSave(),
+  crPersona:()=>{openCrisis();CR.path='persona';CR.step='persona';renderCrisis()},
+  crReason:()=>{const v=$('#cr-reason').value.trim();if(!v){toast('Escribí tu razón');return}S.relapse.reasons.push(v);save();renderCrisis()},
+  copyMsg:()=>{const m=S.settings.message;const sel=()=>{const el=$('#msg-txt');if(el){const r=document.createRange();r.selectNodeContents(el);const w=getSelection();w.removeAllRanges();w.addRange(r)}toast('Texto seleccionado: copialo con el menú')};try{navigator.clipboard.writeText(m).then(()=>toast('Mensaje copiado'),sel)}catch(e){sel()}},
+  chain:()=>openChain(),
+  chainSave:()=>chainSave(),
+  chainSkip:()=>{S.pendingChain=null;save();render()},
+  meal:v=>{const k=dk(Date.now()),d=S.meals[k]=S.meals[k]||{};if(d[v])delete d[v];else d[v]=Date.now();save();render()},
+  note:()=>openNote(),
+  noteSave:()=>{const t=$('#note-in').value.trim();if(!t){toast('Escribí la nota');return}addNote(t);toast('Nota guardada para la sesión');closeOv()},
+  noteDel:v=>{S.notes=S.notes.filter(n=>n.id!==v);save();render()},
+  sesDone:()=>{const ss=S.settings.session;S.notes.forEach(n=>{n.done=true});ss.last=dk(Date.now());const d=new Date();d.setDate(d.getDate()+(+ss.freq||14));ss.next=dk(d);save();toast('Listo. Próxima sesión: '+dShort(d));render()},
+  cDel:v=>{S.settings.contacts.splice(+v,1);save();render()},
+  lsDel:v=>{const[k,i]=v.split(':');S.relapse[k].splice(+i,1);save();render()},
+  lsAdd:v=>{const[k,i]=v.split(':');S.relapse[k].push(SUG[k][+i]);save();render()},
+  ifDel:v=>{S.relapse.ifthen.splice(+v,1);save();render()},
+  ifAdd:v=>{const x=SUG_IF[+v];S.relapse.ifthen.push({if:x[0],then:x[1]});save();render()},
+  env:(v,b)=>{S.relapse.envOn[v]=b.checked;save()},
   tool:v=>openTool(v),
   toolNext:()=>toolNext(),
   groundNext:()=>{TS.g++;renderTool()},
@@ -804,26 +1113,26 @@ const ACT={
   exp:v=>{expKind=v;$('#exp-box').hidden=false;$('#exp-txt').value=v==='json'?JSON.stringify(S,null,1):toCSV()},
   copy:()=>{const ta=$('#exp-txt');const sel=()=>{ta.focus();ta.select();toast('Texto seleccionado: copialo con Ctrl+C o el menú')};try{navigator.clipboard.writeText(ta.value).then(()=>toast('Copiado'),sel)}catch(e){sel()}},
   download:()=>{const blob=new Blob([$('#exp-txt').value],{type:expKind==='json'?'application/json':'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pausa-${dk(Date.now())}.${expKind}`;document.body.appendChild(a);a.click();a.remove()},
-  imp:(v,b)=>{let o;try{o=JSON.parse($('#imp-txt').value)}catch(e){toast('El texto no es un JSON válido');return}if(!o||o.v!==1||!Array.isArray(o.log)){toast('Ese archivo no es un respaldo de Pausa');return}if(!impArmed){impArmed=true;b.textContent='Tocá de nuevo para reemplazar tus datos';return}impArmed=false;S=o;S.settings=S.settings||blank().settings;S.checkins=S.checkins||{};S.plans=S.plans||{};save();toast(`Importados ${S.log.length} registros`);render(true)},
+  imp:(v,b)=>{let o;try{o=JSON.parse($('#imp-txt').value)}catch(e){toast('El texto no es un JSON válido');return}if(!o||o.v!==1||!Array.isArray(o.log)){toast('Ese archivo no es un respaldo de Pausa');return}if(!impArmed){impArmed=true;b.textContent='Tocá de nuevo para reemplazar tus datos';return}impArmed=false;S=o;migrate();save();scheduleReminder();toast(`Importados ${S.log.length} registros`);render(true)},
   wipe:(v,b)=>{if(!wipeArmed){wipeArmed=true;b.textContent='Tocá de nuevo para borrar todo';later(()=>{wipeArmed=false;if(b.isConnected)b.textContent='Borrar todos mis datos'},5000);return}wipeArmed=false;S=blank();save();toast('Datos borrados');V.sub=null;V.tab='inicio';render(true)},
   chip:(v,b)=>{const g=b.dataset.g,grp=b.closest('[data-group]');
     if(grp.dataset.multi){const a=FORM[g]||[];FORM[g]=a.includes(v)?a.filter(x=>x!==v):[...a,v];b.setAttribute('aria-pressed',FORM[g].includes(v))}
     else{FORM[g]=v;$$('.chip',grp).forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===FORM[g]))}
     FORM.__on&&FORM.__on(g)}
 };
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;if(!ACT[a])return;if(b.tagName==='A')return;if(a!=='planDone')e.preventDefault();ACT[a](b.dataset.v,b,e)});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;if(!ACT[a])return;if(b.tagName==='A')return;if(b.type!=='checkbox')e.preventDefault();ACT[a](b.dataset.v,b,e)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ov.hidden)closeOv()});
 window.addEventListener('resize',()=>{if($('#surfc')&&!raf)drawSurf(0)});
 
 /* Recordatorio local (versión instalada) */
-let remT=null;
+let remT=[];
 function scheduleReminder(){
-  clearTimeout(remT);
+  remT.forEach(clearTimeout);remT=[];
   if(!IS_PWA||!S.settings.remind||!('Notification' in window)||Notification.permission!=='granted')return;
-  const rw=riskWindow();if(!rw)return;
-  const t=new Date();t.setHours(rw.h,rw.m,0,0);const ms=t.getTime()-Date.now();if(ms<=0)return;
-  remT=setTimeout(()=>{const body=`Se acerca tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h). Una pausa de un minuto ahora.`;
-    if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification('Pausa',{body,tag:'riesgo'})).catch(()=>{});else try{new Notification('Pausa',{body})}catch(e){}},ms);
+  const notify=body=>{if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification('Pausa',{body,tag:'pausa'})).catch(()=>{});else try{new Notification('Pausa',{body})}catch(e){}};
+  const at=(h,m,body)=>{const t=new Date();t.setHours(h,m,0,0);const ms=t.getTime()-Date.now();if(ms>0)remT.push(setTimeout(()=>notify(body),ms))};
+  const rw=riskWindow();if(rw)at(rw.h,rw.m,`Se acerca tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h). Una pausa de un minuto ahora.`);
+  mealsOn().forEach(m=>{const[h,mi]=m.t.split(':').map(Number);at(h,mi,`Hora de tu ${m.n.toLowerCase()}. Idea: ${idea(m.id).toLowerCase()}.`)});
 }
 if(IS_PWA&&'serviceWorker' in navigator&&/^https?:/.test(location.protocol)){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 

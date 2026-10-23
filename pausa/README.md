@@ -1,4 +1,4 @@
-# Pausa (prototipo v0.1)
+# Pausa (prototipo v0.2)
 
 App personal para manejar antojos de dulce y la ansiedad asociada. Se basa en la guía «Antojos de dulce, ansiedad y control».
 No cuenta calorías, no fija metas de peso, no propone dietas y nunca sugiere compensar después de un episodio.
@@ -19,6 +19,22 @@ No cuenta calorías, no fija metas de peso, no propone dietas y nunca sugiere co
 | Respaldo JSON/CSV, importar, borrar | Completo |
 
 Al abrirla por primera vez muestra 4 semanas de **datos de ejemplo**. El botón «Empezar con mis datos» los borra.
+
+## Fase 2: para los momentos más difíciles
+
+Pausa acompaña todos los días, entre sesión y sesión con el psicólogo. No lo reemplaza: le llega con información.
+
+| Qué | Para qué |
+|---|---|
+| **Modo crisis** con dos caminos: «Lo resuelvo yo» (guía de 10 minutos, un paso por vez) y «Hablar con alguien» (llamar o WhatsApp con un mensaje ya escrito) | El momento del antojo muy fuerte, con o sin otra persona |
+| **Comidas de hoy**: horarios regulares, avisos e ideas que sacian | Cortar el ciclo restricción → descontrol (TCC, Fairburn) |
+| **Después de un episodio**: no compensar, próxima comida, frenar el «ya fue» | Que un episodio no se convierta en una noche entera |
+| **Análisis en cadena** (DBT) | Encontrar dónde cortar la cadena la próxima vez |
+| **Mi plan**: razones, señales tempranas, situaciones de riesgo, «si… entonces…» y entorno | Prevención de recaídas, como en cualquier adicción |
+| **Red de apoyo**: hasta 3 contactos y un mensaje ya escrito | Bajar la vergüenza de pedir ayuda |
+| **Entre sesiones**: fecha de la próxima sesión, notas y un resumen listo para copiar | Llegar a la sesión con lo importante |
+| **Cuándo pedir más ayuda** y aviso desde 2 episodios en 7 días | No esperar a que empeore |
+| **Comer para tener menos antojos** en la Biblioteca | Estructura, no dieta |
 
 ## Archivos
 
