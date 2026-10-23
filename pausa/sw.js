@@ -1,5 +1,5 @@
 // Pausa: funciona sin conexión. Cachea la app al instalar y las fuentes la primera vez que se usan.
-const CACHE = 'pausa-v1';
+const CACHE = 'pausa-v3';
 const APP = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', e => {

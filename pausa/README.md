@@ -1,4 +1,4 @@
-# Pausa (prototipo v0.2)
+# Pausa (prototipo v0.3)
 
 App personal para manejar antojos de dulce y la ansiedad asociada. Se basa en la guía «Antojos de dulce, ansiedad y control».
 No cuenta calorías, no fija metas de peso, no propone dietas y nunca sugiere compensar después de un episodio.
@@ -35,6 +35,22 @@ Pausa acompaña todos los días, entre sesión y sesión con el psicólogo. No l
 | **Entre sesiones**: fecha de la próxima sesión, notas y un resumen listo para copiar | Llegar a la sesión con lo importante |
 | **Cuándo pedir más ayuda** y aviso desde 2 episodios en 7 días | No esperar a que empeore |
 | **Comer para tener menos antojos** en la Biblioteca | Estructura, no dieta |
+
+## Perfil y personalización
+
+La primera vez, Pausa hace unas 15 preguntas breves (3 o 4 minutos): hace cuánto pasa, cuántos episodios de pérdida de control por semana, cómo son, cuánto malestar generan, si hay conductas compensatorias, qué comidas se saltean, horarios, emociones y situaciones de riesgo, tratamiento actual, persona de confianza, preferencia en crisis y razones para cambiar.
+
+Con eso define un **nivel de acompañamiento** (liviano, diario o intensivo; no es un diagnóstico) y adapta la app:
+
+- Saludo por nombre; emociones y situaciones propias primero al registrar.
+- Plan diario que prioriza no saltear las comidas que la persona suele saltear.
+- Franja de riesgo tomada de las respuestas hasta que haya datos propios.
+- Orden del modo crisis según la preferencia; contacto y razones cargados desde el inicio.
+- Avisos sobrios si hay conductas de purga o pensamientos de hacerse daño.
+- **Lo que noto**: observaciones que comparan lo que la persona contó con sus datos (episodios por semana, comidas salteadas y antojo de la tarde, horario real de riesgo, uso de herramientas, respaldo).
+- **Revisión cada 4 semanas** (4 preguntas) con comparación antes/ahora e historial en Más → Mi perfil.
+
+Los datos se guardan en dos lugares del navegador (localStorage e IndexedDB) y se pide almacenamiento persistente, así no hay que volver a responder nada.
 
 ## Archivos
 

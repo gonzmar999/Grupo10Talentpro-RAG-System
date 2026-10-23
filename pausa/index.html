@@ -191,6 +191,9 @@ input[type=time],input[type=date],select{border:1px solid var(--line);background
 .mealrow input[type=checkbox],.envrow input{width:22px;height:22px;accent-color:var(--accent);margin:0}
 .envrow{display:flex;gap:12px;align-items:flex-start;padding:8px 0}
 .ifthen p{margin:0}
+.ob-opts{gap:8px}
+.ob-opts .chip{width:100%;justify-content:flex-start;border-radius:14px;min-height:52px;padding:10px 16px;text-align:left}
+.obs .li{align-items:center}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;max-width:min(90vw,480px);box-sizing:border-box;font-size:.95rem}
 </style>
 
@@ -305,6 +308,47 @@ const FOOD=[
   ['Lo que conviene no tener en cantidad','Ultraprocesados (van Tulleken, Moss)','Los dulces de paquete están diseñados para que comas de más. No se trata de prohibirlos, sino de no tenerlos a mano en cantidad.'],
   ['Lo que no tiene buena evidencia','Para no gastar de más','Suplementos «anti-antojo» como cromo o canela y los «superalimentos». Los edulcorantes tienen resultados mixtos. Si tenés diabetes u otra condición, consultá a tu médico.']
 ];
+const TIMES=[['manana','Mañana',9],['mediodia','Mediodía',12],['tarde','Tarde',17],['noche','Noche',21],['madrugada','Madrugada',0]];
+const TIME_PH={manana:'a la mañana',mediodia:'al mediodía',tarde:'a la tarde',noche:'a la noche',madrugada:'de madrugada'};
+const MEAL_ART={desayuno:'el desayuno',colacion:'la colación',almuerzo:'el almuerzo',merienda:'la merienda',cena:'la cena'};
+const FREQ_N={'0':0,lt1:.5,'1-3':2,'4-7':5.5,gt7:9};
+const FREQ_PH={lt1:'menos de un episodio','1-3':'de 1 a 3 episodios','4-7':'de 4 a 7 episodios',gt7:'más de 7 episodios'};
+const OB=[
+  {id:'welcome'},
+  {id:'name',q:'¿Cómo querés que te llame?',type:'text',ph:'Tu nombre o apodo'},
+  {id:'dur',q:'¿Hace cuánto te cuesta controlar el dulce?',type:'one',opts:[['lt3m','Menos de 3 meses'],['3-12m','Entre 3 meses y un año'],['1-5a','Entre 1 y 5 años'],['gt5a','Más de 5 años']]},
+  {id:'freq',req:true,q:'En las últimas 4 semanas, ¿cuántas veces por semana sentiste que perdías el control al comer?',h:'Perder el control es sentir que no podés parar, o que no elegís qué ni cuánto comés.',type:'one',opts:[['0','Ninguna'],['lt1','Menos de una'],['1-3','De 1 a 3'],['4-7','De 4 a 7'],['gt7','Más de 7']]},
+  {id:'feat',q:'En esos momentos, ¿pasa alguna de estas cosas?',h:'Podés elegir varias.',type:'multi',skipIf:a=>a.freq==='0',opts:[['rapido','Como mucho más rápido de lo normal'],['lleno','Sigo hasta sentirme mal de lleno'],['sinhambre','Como sin tener hambre física'],['escondidas','Como a escondidas, por vergüenza'],['culpa','Después siento culpa, asco o tristeza'],['ninguna','Ninguna']]},
+  {id:'distress',req:true,q:'¿Cuánto malestar te genera esto?',type:'one',opts:[['1','Casi nada'],['2','Poco'],['3','Bastante'],['4','Mucho'],['5','Muchísimo']]},
+  {id:'comp',q:'Después de comer de más, ¿hacés alguna de estas cosas?',h:'Respondé con sinceridad: esto no lo ve nadie más.',type:'multi',opts:[['saltear','Saltear la comida siguiente'],['ejercicio','Hacer ejercicio de más'],['vomito','Vomitar'],['laxantes','Tomar laxantes o diuréticos'],['ninguna','Ninguna']]},
+  {id:'skip',q:'En un día común, ¿qué comidas solés saltear?',type:'multi',opts:[['desayuno','Desayuno'],['almuerzo','Almuerzo'],['merienda','Merienda'],['cena','Cena'],['ninguna','Ninguna']]},
+  {id:'times',q:'¿En qué momento del día te cuesta más?',h:'Si marcás varios, poné primero el más difícil.',type:'multi',opts:TIMES.map(t=>[t[0],t[1]])},
+  {id:'emo',q:'¿Qué suele haber detrás del antojo?',type:'multi',grid:'emo',icons:true,opts:EMO},
+  {id:'sit',q:'¿Dónde o cuándo pasa más?',type:'multi',grid:'chips',opts:SIT},
+  {id:'selfharm',q:'En las últimas dos semanas, ¿tuviste pensamientos de hacerte daño?',h:'Te lo pregunto para saber cómo acompañarte mejor.',type:'one',opts:[['no','No'],['si','Sí'],['nr','Prefiero no responder']]},
+  {id:'treat',q:'¿Con quién te estás tratando hoy?',type:'multi',opts:[['psicologo','Psicólogo'],['psiquiatra','Psiquiatra'],['nutri','Nutricionista'],['ninguno','Con nadie por ahora']]},
+  {id:'contact',q:'¿Hay alguien de confianza a quien puedas escribirle en un momento difícil?',h:'Opcional. Va a quedar a mano en el modo crisis.',type:'contact'},
+  {id:'pref',q:'Cuando el antojo es muy fuerte, ¿qué te sirve más?',type:'one',opts:[['solo','Arreglarme por mi cuenta'],['persona','Hablar con alguien'],['nose','No sé todavía']]},
+  {id:'reasons',q:'¿Por qué querés cambiar esto?',h:'Vas a leerlo en los momentos difíciles.',type:'multi',free:true,opts:SUG.reasons.map(x=>[x,x])},
+  {id:'result'}
+];
+const OBM=Object.fromEntries(OB.map(x=>[x.id,x]));
+const optL=id=>L(OBM[id].opts);
+const DUR_L=optL('dur'),FREQ_L=optL('freq'),FEAT_L=optL('feat'),DIST_L=optL('distress'),COMP_L=optL('comp'),MEAL_L=optL('skip'),TIME_L=optL('times'),TREAT_L=optL('treat'),PREF_L=optL('pref');
+const LEVELS={
+  leve:{n:'Acompañamiento liviano',s:'liviano',d:'Los antojos cuestan, pero los episodios de descontrol son poco frecuentes. Pausa se va a enfocar en que entiendas tus patrones y tengas herramientas a mano.'},
+  moderado:{n:'Acompañamiento diario',s:'diario',d:'Hay episodios de descontrol con cierta regularidad y te generan malestar. Pausa va a priorizar las comidas regulares, el SOS y el registro. Te conviene consultar a un profesional en conducta alimentaria.'},
+  intenso:{n:'Acompañamiento intensivo',s:'intensivo',d:'Lo que contás suele necesitar tratamiento profesional: un psicólogo con formación en TCC o DBT y, si los episodios son muy frecuentes, una evaluación con un psiquiatra. Pausa va a ser tu apoyo de todos los días, entre sesión y sesión.'}
+};
+function levelOf(a){
+  const f=FREQ_N[a.freq]||0,feat=(a.feat||[]).filter(x=>x!=='ninguna').length,d=+a.distress||0;
+  if(f>=5.5||(f>=2&&feat>=3&&d>=4))return 'intenso';
+  if(f>=2||d>=4||(f>=.5&&feat>=3))return 'moderado';
+  return 'leve';
+}
+function flagsOf(a){const fl=[];if((a.comp||[]).some(x=>x==='vomito'||x==='laxantes'))fl.push('purga');if(a.selfharm==='si')fl.push('riesgo');return fl}
+const listEs=arr=>arr.length<2?arr.join(''):arr.slice(0,-1).join(', ')+' y '+arr[arr.length-1];
+const ordered=(arr,pref)=>[...arr.filter(x=>pref.includes(x[0])),...arr.filter(x=>!pref.includes(x[0]))];
 const BODY=['Tensión','Calor','Vacío en el estómago','Inquietud','Salivación','Presión en el pecho','Nada en particular'];
 
 /* ---------- Estado y guardado local ---------- */
@@ -319,12 +363,16 @@ function migrate(){
   ['checkins','plans','meals','notes','relapse'].forEach(k=>{if(S[k]==null)S[k]=b[k]});
   Object.keys(b.relapse).forEach(k=>{if(S.relapse[k]==null)S.relapse[k]=b.relapse[k]});
   if(S.pendingChain===undefined)S.pendingChain=null;
+  if(S.profile&&!S.profile.dismissed)S.profile.dismissed={};
 }
 function load(){try{const s=localStorage.getItem(KEY);if(s){const o=JSON.parse(s);if(o&&o.v===1&&Array.isArray(o.log))return o}}catch(e){}return null}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const IDB={db:null,
+  open(){return new Promise(res=>{try{const r=indexedDB.open('pausa',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>res(null)}catch(e){res(null)}})},
+  get(k){return new Promise(res=>{if(!this.db)return res(null);try{const q=this.db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)}catch(e){res(null)}})},
+  set(k,v){if(!this.db)return;try{this.db.transaction('kv','readwrite').objectStore('kv').put(v,k)}catch(e){}}
+};
+function save(){const j=JSON.stringify(S);try{localStorage.setItem(KEY,j)}catch(e){}IDB.set(KEY,j)}
 let S=load();
-if(!S){S=blank();seedDemo();save()}
-migrate();
 
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function seedDemo(){
@@ -431,7 +479,7 @@ function safety(){
   const worse=ints.every(x=>x!=null)&&ints[1]<ints[2]&&ints[2]<ints[3]&&ints[3]-ints[1]>=1.5;
   return ep>=4||ep7>=2||rising||worse?{ep,ep7,rising,worse}:null;
 }
-function riskWindow(){const a=analyze(14);if(a.n<5||!a.peak||a.peakN<3)return null;let m=a.peak.start*60-30;if(m<0)m+=1440;return{h:Math.floor(m/60),m:m%60,peak:a.peak}}
+function riskWindow(){const a=analyze(14);if(a.n<5||!a.peak||a.peakN<3){const t=S.profile&&(S.profile.times||[])[0],T=t&&TIMES.find(x=>x[0]===t);if(!T)return null;let m=T[2]*60-30;if(m<0)m+=1440;return{h:Math.floor(m/60),m:m%60,peak:{start:T[2],end:(T[2]+2)%24},fromProfile:true}}let m=a.peak.start*60-30;if(m<0)m+=1440;return{h:Math.floor(m/60),m:m%60,peak:a.peak}}
 
 /* ---------- Comidas ---------- */
 const mins=t=>{const[h,m]=String(t).split(':').map(Number);return h*60+(m||0)};
@@ -450,11 +498,40 @@ function mealState(){
   return{done,ms,next,gap,lastTs};
 }
 
+/* ---------- Observaciones: compara lo que contaste con tus datos ---------- */
+function frOf(h){return h>=6&&h<11?'manana':h>=11&&h<15?'mediodia':h>=15&&h<20?'tarde':h>=20?'noche':'madrugada'}
+function observations(){
+  const o=[],p=S.profile,now=Date.now();
+  const started=p?p.date:((S.log[0]&&S.log[0].ts)||now),using=(now-started)/DAY;
+  const a14=analyze(14),cr7=since(7).filter(e=>e.kind==='antojo').length;
+  const ep14=since(14).filter(e=>e.kind==='antojo'&&e.control==='si').length;
+  if(p&&FREQ_PH[p.freq]&&using>=7&&a14.n>=5){const now7=ep14/2,base=FREQ_N[p.freq];o.push({k:'base',t:`Al empezar contaste ${FREQ_PH[p.freq]} por semana. En las últimas dos semanas registraste ${r1(now7)} por semana.${now7<base?' Va en la dirección buscada.':' Si se sostiene, es un buen tema para tu próxima sesión.'}`})}
+  const days=[];for(let i=1;i<=14;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dk(d);if(S.meals[k])days.push([k,S.meals[k]])}
+  for(const meal of ['desayuno','almuerzo','merienda']){
+    if(!mealsOn().some(m=>m.id===meal))continue;
+    const w=[],wo=[];
+    days.forEach(([k,md])=>{const ints=S.log.filter(e=>e.kind==='antojo'&&dk(e.ts)===k&&new Date(e.ts).getHours()>=15).map(e=>e.int);if(ints.length)(md[meal]?w:wo).push(avg(ints))});
+    if(w.length>=2&&wo.length>=2&&avg(wo)-avg(w)>=1){const la=meal==='merienda'?'la':'lo';o.push({k:'meal',t:`Los días que salteás ${MEAL_ART[meal]}, el antojo de la tarde promedia ${r1(avg(wo))}; cuando ${la} hacés, ${r1(avg(w))}.`,act:['sub','comidas','Ver horarios']});break}
+  }
+  if(ep14>=2&&!since(14).some(e=>e.kind==='crisis'||e.kind==='sos'))o.push({k:'crisis',t:`En dos semanas registraste ${ep14} episodios y no usaste el modo crisis ni el SOS. La próxima vez abrilo apenas aparezca el antojo, aunque dudes.`,act:['crisis','','Ver cómo es']});
+  if(p&&(p.times||[]).length&&a14.n>=8&&a14.peak&&a14.peakN>=4&&!p.times.includes(frOf(a14.peak.start)))o.push({k:'peak',t:`Al empezar dijiste que te costaba más ${TIME_PH[p.times[0]]}, pero tus datos muestran más antojos entre las ${a14.peak.start} y las ${a14.peak.end} h. Tu plan ya usa el horario de tus datos.`});
+  if(p&&p.level!=='leve'&&using>=5&&cr7<3)o.push({k:'log',t:'Esta semana registraste pocos antojos. Si no es que bajaron, registrar aunque sea los más fuertes ayuda a ver tu patrón.'});
+  const nights=Object.entries(S.checkins).filter(([d,c])=>c.n&&new Date(d+'T12:00').getTime()>now-7*DAY).length;
+  if(p&&p.level!=='leve'&&using>=7&&nights<3)o.push({k:'night',t:`Hiciste ${nights} ${nights===1?'check-in':'check-ins'} de noche esta semana. Con más, se ve mejor cómo se relacionan la ansiedad, los horarios y el antojo.`});
+  if(a14.crisis.n>=2&&a14.crisis.drop>=2)o.push({k:'best',t:`El modo crisis te baja el antojo ${r1(a14.crisis.drop)} puntos en promedio. Es tu herramienta más fuerte: usala primero.`});
+  else if(a14.sos.n>=2&&a14.sos.drop>=2)o.push({k:'best',t:`El SOS te baja el antojo ${r1(a14.sos.drop)} puntos en promedio. Usalo primero cuando aparezca uno fuerte.`});
+  const lb=S.lastBackup||started,bk=using>=7&&now-lb>7*DAY?{k:'backup',t:`Hace ${Math.round((now-lb)/DAY)} días que no hacés un respaldo. Tus datos están solo en este dispositivo.`,act:['sub','datos','Hacer respaldo']}:null;
+  const res=o.slice(0,bk?2:3);if(bk)res.push(bk);
+  return res;
+}
+
 /* ---------- Plan diario ---------- */
 function buildPlan(){
   const a=analyze(14),items=[],today=S.checkins[dk(Date.now())],m=today&&today.m;
   const rw=riskWindow();
-  if(rw)items.push({id:'peak',t:`A las ${pad(rw.h)}:${pad(rw.m)}, antes de tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h), hacé 1 minuto de respiración lenta.`,tool:'resp',src:'Tu patrón · respiración pautada (DBT)'});
+  if(rw)items.push({id:'peak',t:`A las ${pad(rw.h)}:${pad(rw.m)}, antes de tu franja de mayor antojo (${rw.peak.start}–${rw.peak.end} h), hacé 1 minuto de respiración lenta.`,tool:'resp',src:rw.fromProfile?'Lo que me contaste · respiración pautada (DBT)':'Tu patrón · respiración pautada (DBT)'});
+  const sk=((S.profile&&S.profile.skip)||[]).find(x=>mealsOn().some(mm=>mm.id===x));
+  if(sk)items.push({id:'skip',t:`Hoy no saltees ${MEAL_ART[sk]}: aunque sea algo chico, como ${idea(sk).toLowerCase()}.`,src:'Lo que me contaste · TCC (Fairburn)'});
   if(rw){const ps=rw.peak.start*60,bf=mealsOn().filter(x=>mins(x.t)<ps).pop();if(bf&&ps-mins(bf.t)<=180)items.push({id:'meal',t:`Tu franja de riesgo empieza a las ${rw.peak.start} h. Hacé tu ${bf.n.toLowerCase()} a las ${bf.t}, con proteína o fibra: por ejemplo, ${idea(bf.id).toLowerCase()}.`,src:'Comer para tener menos antojos'})}
   if(m&&(m.sleep<=2||m.energy<=2))items.push({id:'tired',t:`Hoy arrancás con poco descanso y el cansancio suele subir el antojo. Dejá a mano tu acción alternativa: «${S.settings.alts[0]||'tomar agua'}».`,src:'Tu check-in de hoy'});
   else if(m&&m.stress>=4)items.push({id:'stress',t:'Esperás un día con estrés alto. Agendá una pausa STOP a media mañana y otra a media tarde.',tool:'stop',src:'DBT'});
@@ -592,14 +669,21 @@ function sesCard(){
   return `<section class="card"><div class="row between"><div class="stack-s grow"><h2>Próxima sesión</h2><span class="muted small">${when} · ${n} ${n===1?'nota':'notas'}</span></div><button class="btn sm soft" data-a="sub" data-v="sesiones">Preparar</button></div><div><button class="link small" data-a="note">Anotar algo para la sesión</button></div></section>`;
 }
 VIEWS.inicio=()=>{
-  const now=new Date(),k=dk(now),ck=S.checkins[k]||{},plan=getPlan(),sf=safety(),rw=riskWindow(),pc=S.pendingChain;
+  const now=new Date(),k=dk(now),ck=S.checkins[k]||{},plan=getPlan(),sf=safety(),rw=riskWindow(),pc=S.pendingChain,prof=S.profile;
+  const reviewDue=prof&&Date.now()-(prof.lastReview||prof.date)>28*DAY;
+  const fl=prof?prof.flags||[]:[],flagOff=prof&&prof.dismissed.flag&&Date.now()-prof.dismissed.flag<14*DAY;
+  const flagNote=fl.length&&!flagOff?`<div class="note warn"><p class="eyebrow">Importante</p>${fl.includes('purga')?'<p>Contaste que a veces vomitás o usás laxantes después de comer. Puede afectar tu salud física, así que es importante hablarlo pronto con un médico o un psicólogo.</p>':''}${fl.includes('riesgo')?'<p>Contaste que tuviste pensamientos de hacerte daño. Si aparecen ahora, llamá a emergencias de tu país o andá a la guardia, y contale a alguien de confianza.</p>':''}<div class="row"><button class="btn sm soft" data-a="sub" data-v="gravedad">Ver opciones</button><button class="btn sm ghost" data-a="flagOk">Ya lo estoy viendo con un profesional</button></div></div>`:'';
+  const obs=observations();
   let risk='';
   if(rw){const nm=now.getHours()*60+now.getMinutes(),st=rw.h*60+rw.m,en=rw.peak.end*60||1440;if(nm>=st&&nm<en)risk=`<div class="note accent"><p class="eyebrow">Franja de riesgo</p><p>Estás en tu horario de mayor antojo (${rw.peak.start}–${rw.peak.end} h). Una pausa de un minuto ahora suele servir más que esperar a que aparezca.</p><div class="row"><button class="btn sm primary" data-a="tool" data-v="resp">Respirar 1 minuto</button></div></div>`}
   const today=S.log.filter(e=>dk(e.ts)===k).slice().reverse();
   const ckRow=(t,done,sum,v)=>`<div class="li"><div class="grow stack-s"><span class="lab">${t}</span><span class="muted small">${done?sum:'Menos de un minuto'}</span></div>${done?`<span class="pill ok">Hecho</span><button class="btn sm ghost" data-a="checkin" data-v="${v}" aria-label="Editar check-in">Editar</button>`:`<button class="btn sm soft" data-a="checkin" data-v="${v}">Hacer</button>`}</div>`;
   const S5=['muy mal','mal','regular','bien','muy bien'];
   return `
-  <header class="stack-s"><p class="eyebrow">${DOW[now.getDay()]} ${now.getDate()} de ${MON[now.getMonth()]}</p><h1>Pausa</h1></header>
+  <header class="stack-s"><p class="eyebrow">${DOW[now.getDay()]} ${now.getDate()} de ${MON[now.getMonth()]}</p><h1>${prof&&prof.name?`Hola, ${esc(prof.name)}`:'Pausa'}</h1>${prof?`<div><button class="pill" data-a="sub" data-v="perfil" style="border:0;cursor:pointer">${LEVELS[prof.level].n}</button></div>`:''}</header>
+  ${!prof&&!S.demo?`<div class="note accent"><p class="eyebrow">Contame de vos</p><p>Son 3 o 4 minutos de preguntas para entender tu situación y armar Pausa a tu medida. Lo que respondas queda guardado: no vas a tener que repetirlo.</p><div class="row"><button class="btn sm primary" data-a="obStart">Empezar</button></div></div>`:''}
+  ${flagNote}
+  ${reviewDue?`<div class="note"><p class="eyebrow">Revisión</p><p>Pasaron 4 semanas desde tu última revisión. Son 4 preguntas para ver cómo cambió.</p><div class="row"><button class="btn sm soft" data-a="obReview">Hacerla ahora</button></div></div>`:''}
   ${S.demo?`<div class="note"><p class="eyebrow">Datos de ejemplo</p><p>Estás viendo 4 semanas de datos inventados para que veas cómo funcionan los patrones y el progreso. Cuando quieras empezar en serio, borralos.</p><div class="row"><button class="btn sm primary" data-a="clearDemo">Empezar con mis datos</button></div></div>`:''}
   ${sf?`<div class="note warn"><p class="eyebrow">Para tener en cuenta</p><p>${sf.ep7>=2?`Esta semana registraste ${sf.ep7} episodios con pérdida de control.`:sf.ep>=4?`En las últimas dos semanas registraste ${sf.ep} episodios con pérdida de control.`:'La tendencia de las últimas semanas viene subiendo.'} Esto suele responder bien al trabajo con un profesional en conducta alimentaria, y también hay tratamientos médicos que un psiquiatra puede evaluar. Pausa te acompaña todos los días; el profesional hace lo que una app no puede.</p><div class="row"><button class="btn sm soft" data-a="sub" data-v="gravedad">Ver opciones</button><button class="btn sm ghost" data-a="sub" data-v="apoyo">Mis contactos</button></div></div>`:''}
   <button class="btn crisis block" data-a="crisis"><span>Antojo muy fuerte</span><small>Modo crisis ›</small></button>
@@ -610,6 +694,7 @@ VIEWS.inicio=()=>{
     <button class="btn mid" data-a="log" data-v="dulce"><span>Comí dulce</span><small>Se registra como dato</small></button>
   </section>
   ${pc?`<div class="note"><p class="eyebrow">Pendiente</p><p>Cuando tengas un rato de calma, mirá qué pasó en el episodio del ${dShort(pc.ts)}. Lleva 5 minutos y te ayuda a cortar la cadena la próxima vez.</p><div class="row"><button class="btn sm soft" data-a="chain">Hacerlo ahora</button><button class="btn sm ghost" data-a="chainSkip">Descartar</button></div></div>`:''}
+  ${obs.length?`<section class="card obs"><h2>Lo que noto</h2><div class="list">${obs.map(x=>`<div class="li"><span class="grow">${esc(x.t)}</span>${x.act?`<button class="btn sm soft" data-a="${x.act[0]}" data-v="${x.act[1]}">${x.act[2]}</button>`:''}</div>`).join('')}</div></section>`:''}
   ${mealsCard()}
   <section class="card"><div class="row between"><h2>Plan de hoy</h2><span class="muted small">${plan.items.length} acciones</span></div>
     <div class="list">${plan.items.map(it=>{const d=plan.done.includes(it.id);return `<div class="li"><label class="check grow ${d?'done':''}"><input type="checkbox" data-a="planDone" data-v="${it.id}" ${d?'checked':''}><span class="stack-s"><span class="txt">${esc(it.t)}</span><span class="muted small">${esc(it.src)}</span></span></label>${it.tool?`<button class="btn sm ghost" data-a="${it.tool==='sosx'?'sos':'tool'}" data-v="${it.tool}">Abrir</button>`:''}</div>`}).join('')}</div>
@@ -701,6 +786,7 @@ VIEWS.mas=()=>{
   const cs=S.settings.contacts;
   return `<header class="stack-s"><p class="eyebrow">Tu plan y tu red</p><h1>Más</h1></header>
   <div class="stack">
+    ${row('perfil','Mi perfil',S.profile?`${S.profile.name?esc(S.profile.name)+' · ':''}${LEVELS[S.profile.level].n}`:'Contame de vos para personalizar Pausa')}
     ${row('miplan','Mi plan','Razones, señales, «si… entonces…» y entorno')}
     ${row('comidas','Horarios de comida','Avisos e ideas que sacian')}
     ${row('sesiones','Entre sesiones','Notas y resumen para tu psicólogo')}
@@ -748,6 +834,16 @@ const SUBS={
     <div class="card">${cs.length?`<div class="list">${cs.map((c,i)=>`<div class="li"><div class="grow stack-s"><b>${esc(c.name||'Contacto')}</b><span class="muted small num">${esc(c.phone)}${c.note?' · '+esc(c.note):''}</span></div><button class="btn sm ghost" data-a="cDel" data-v="${i}">Quitar</button></div>`).join('')}</div>`:'<p class="muted">Todavía no agregaste a nadie.</p>'}
     ${cs.length<3?`<form id="f-contact" class="stack"><div class="field"><label for="c-name">Nombre</label><input type="text" id="c-name" placeholder="Ej.: Lic. Martínez, o mi hermana"></div><div class="field"><label for="c-phone">Teléfono</label><input type="tel" id="c-phone" placeholder="+54 9 11 …"></div><div class="field"><label for="c-note">Quién es</label><input type="text" id="c-note" placeholder="Ej.: mi psicóloga, mi amigo"></div><button class="btn primary" type="submit">Agregar contacto</button></form>`:''}</div>
     <form class="card" id="f-msg"><div class="field"><label for="m-txt">Mensaje ya escrito</label><textarea id="m-txt">${esc(S.settings.message)}</textarea><p class="hint">Se manda con un toque desde el modo crisis. Escribilo ahora, con calma, para no tener que pensarlo en el momento difícil.</p></div><button class="btn soft" type="submit">Guardar mensaje</button></form>`},
+  perfil:()=>{const p=S.profile;
+    if(!p)return `${back}<header class="stack-s"><h1>Mi perfil</h1></header><div class="card"><p>Todavía no respondiste las preguntas iniciales. Son 3 o 4 minutos y hacen que Pausa se adapte a tu caso.</p><button class="btn primary" data-a="obStart">Empezar</button></div>`;
+    const row=(l,v)=>v?`<div class="li"><span class="muted" style="min-width:8.5rem">${l}</span><span class="grow">${esc(v)}</span></div>`:'';
+    const j=(arr,map)=>arr==null?'':(arr.filter(x=>x!=='ninguna'&&x!=='ninguno').map(x=>map[x]||x).join(', ')||'Ninguna');
+    return `${back}<header class="stack-s"><h1>${p.name?esc(p.name):'Mi perfil'}</h1><p class="muted">Desde el ${dShort(p.date)}. Lo que me contaste queda guardado: no vas a tener que repetirlo.</p></header>
+    <div class="note ${p.level==='intenso'?'warn':'accent'}"><p class="eyebrow">Nivel de acompañamiento</p><h2>${LEVELS[p.level].n}</h2><p>${LEVELS[p.level].d}</p></div>
+    <div class="card"><h2>Lo que me contaste</h2><div class="list">${row('Hace cuánto',DUR_L[p.dur])}${row('Episodios por semana',FREQ_L[p.freq])}${row('En esos momentos',j(p.feat,FEAT_L))}${row('Malestar',DIST_L[p.distress])}${row('Después de comer de más',j(p.comp,COMP_L))}${row('Comidas que salteás',j(p.skip,MEAL_L))}${row('Momento más difícil',j(p.times,TIME_L))}${row('Emociones',j(p.emo,EMO_L))}${row('Situaciones',j(p.sit,SIT_L))}${row('Tratamiento',j(p.treat,TREAT_L))}${row('En crisis prefiero',PREF_L[p.pref])}</div></div>
+    ${(p.history||[]).length>1?`<div class="card"><h2>Tu evolución</h2><div class="tbl"><table><thead><tr><th>Fecha</th><th>Episodios por semana</th><th>Malestar</th><th>Acompañamiento</th></tr></thead><tbody>${p.history.slice().reverse().map(h=>`<tr><td>${dShort(h.date)}</td><td>${esc(FREQ_L[h.freq]||'–')}</td><td>${h.distress||'–'}/5</td><td>${LEVELS[h.level].s}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+    <div class="stack"><button class="btn primary" data-a="obReview">Hacer la revisión ahora</button><button class="btn" data-a="obEdit">Editar mis respuestas</button></div>
+    <p class="hint">Pausa usa estas respuestas para elegir qué mostrarte primero y armar tu plan mientras todavía no hay datos. Con el tiempo, tus registros pesan más que las respuestas iniciales.</p>`},
   miplan:()=>{const R=S.relapse;
     const listEd=(key,title,hint,ph)=>`<section class="card"><div class="stack-s"><h2>${title}</h2><p class="muted small">${hint}</p></div>
       ${R[key].length?`<div class="list">${R[key].map((x,i)=>`<div class="li"><span class="grow">${esc(x)}</span><button class="btn sm ghost" data-a="lsDel" data-v="${key}:${i}">Quitar</button></div>`).join('')}</div>`:''}
@@ -786,7 +882,7 @@ const SUBS={
     <div class="card"><p>Pausa te avisa a la hora de cada comida y 30 minutos antes de tu franja de riesgo.</p><p>${rw?`Tu franja de mayor antojo es <b>${rw.peak.start}–${rw.peak.end} h</b>. El recordatorio sugerido es a las <b class="num">${pad(rw.h)}:${pad(rw.m)}</b>.`:'Todavía no hay una franja de riesgo clara. Hacen falta al menos 5 antojos en las últimas dos semanas.'}</p>
     <p class="muted small">Dentro de la app, durante esa franja, el inicio te muestra un aviso con una pausa de un minuto.</p>
     ${IS_PWA?`<button class="btn soft" data-a="notify">${perm==='granted'?'Notificaciones activadas':'Activar notificaciones'}</button><p class="hint">En esta versión de prueba el aviso llega si la app está abierta o en segundo plano. Los avisos con la app cerrada llegan en la versión final.</p>`:`<p class="hint">Las notificaciones del sistema funcionan cuando instalás Pausa en el celular (ver instrucciones en la carpeta del proyecto). En esta vista previa se usa solo el aviso dentro de la app.</p>`}</div>`},
-  datos:()=>`${back}<header class="stack-s"><h1>Respaldo de datos</h1><p class="muted">Tus datos se guardan solo en este dispositivo. Exportalos de vez en cuando.</p></header>
+  datos:()=>`${back}<header class="stack-s"><h1>Respaldo de datos</h1><p class="muted">Tus datos se guardan en este dispositivo, en dos lugares del navegador para que no se pierdan. Aun así, si cambiás de celular o borrás los datos del navegador, solo vuelven con un respaldo. Exportalo una vez por semana.</p></header>
     <div class="card"><div class="row"><button class="btn soft" data-a="exp" data-v="json">Exportar JSON</button><button class="btn soft" data-a="exp" data-v="csv">Exportar CSV</button></div>
     <div id="exp-box" hidden class="stack"><textarea id="exp-txt" class="mono" readonly style="min-height:160px"></textarea><div class="row"><button class="btn sm primary" data-a="copy">Copiar</button>${IS_PWA?'<button class="btn sm soft" data-a="download">Descargar archivo</button>':''}</div></div></div>
     <div class="card"><h2>Importar</h2><p class="muted small">Reemplaza los datos actuales por los del respaldo (JSON).</p>
@@ -830,8 +926,8 @@ function openLog(mode){
   FORM={mode,did:mode==='dulce'?'dulce':null};
   openOv(`${head(mode==='dulce'?'Comí dulce':'Tengo un antojo',`<span class="eyebrow">Registro · ${hm(Date.now())}</span>`)}
   <div class="field"><span class="lab">${mode==='dulce'?'¿Qué tan fuerte era el antojo?':'Intensidad del antojo'}</span>${scale('int')}</div>
-  <div class="field"><span class="lab">Emoción</span>${chips('emo',EMO,{icons:true,cls:'emo'})}</div>
-  <div class="field"><span class="lab">Situación</span>${chips('sit',SIT)}</div>
+  <div class="field"><span class="lab">Emoción</span>${chips('emo',ordered(EMO,(S.profile&&S.profile.emo)||[]),{icons:true,cls:'emo'})}</div>
+  <div class="field"><span class="lab">Situación</span>${chips('sit',ordered(SIT,(S.profile&&S.profile.sit)||[]),)}</div>
   <div class="field"><span class="lab">Hambre</span>${chips('hunger',HUNGER)}<p class="hint">Física: aparece de a poco y cualquier comida te sirve. Emocional: aparece de golpe y pide algo puntual.</p></div>
   ${mode==='antojo'?`<div class="field"><span class="lab">Qué hice</span>${chips('did',DID)}</div>`:''}
   <div class="field" id="ctl-row" ${mode==='dulce'?'':'hidden'}><span class="lab">¿Sentiste pérdida de control?</span>${chips('control',CONTROL)}</div>
@@ -954,6 +1050,99 @@ function saveCheckin(){
   toast(FORM.which==='m'?'Check-in guardado. El plan de hoy se actualizó.':'Check-in guardado');closeOv();
 }
 
+/* Preguntas iniciales y revisión */
+let OBS=null;
+function openOnboarding(mode){
+  clearTimers();const p=S.profile;
+  OBS={mode,i:0,ans:mode==='full'&&p?JSON.parse(JSON.stringify(p)):{},steps:mode==='review'?['freq','feat','distress','comp','result']:OB.map(x=>x.id)};
+  if(mode==='full'&&p)OBS.i=1;
+  renderOb();
+}
+function renderOb(){
+  clearTimers();
+  const id=OBS.steps[OBS.i],st=OBM[id],a=OBS.ans,x=`<button class="x" data-a="close" aria-label="Cerrar">${ic('x')}</button>`;
+  if(id==='welcome'){openOv(`<div class="ovhead"><span class="eyebrow">Bienvenida</span>${x}</div>
+    <div class="stack" style="gap:16px"><h1>Pausa</h1><p style="font-size:1.15rem">Te acompaña todos los días con los antojos de dulce y la ansiedad, entre sesión y sesión.</p>
+    <div class="card"><div class="list">${[['Primero, unas preguntas','Son 3 o 4 minutos. Sirven para entender tu situación y armar la app a tu medida.'],['No es un diagnóstico','Las respuestas orientan, pero solo un profesional puede evaluarte.'],['Tus datos son tuyos','Quedan guardados en este dispositivo y no se mandan a ningún lado. No vas a tener que repetirlos.']].map(([t,d])=>`<div class="li"><div class="stack-s"><b>${t}</b><span class="muted">${d}</span></div></div>`).join('')}</div></div></div>
+    <div class="footer-btns"><button class="btn primary block" data-a="obNext">Empezar</button><button class="btn ghost" data-a="obDemo">Ver primero un ejemplo con datos inventados</button></div>`);return}
+  if(id==='result'){renderObResult();return}
+  FORM={};FORM[id]=a[id]!=null?(Array.isArray(a[id])?a[id].slice():a[id]):(st.type==='multi'?[]:null);
+  let field='';
+  if(st.type==='one')field=chips(id,st.opts,{cls:'stack ob-opts'});
+  if(st.type==='multi'){const opts=id==='reasons'?[...st.opts,...(a._extra||[]).map(r=>[r,r])]:st.opts;
+    field=chips(id,opts,{multi:true,cls:st.grid||'stack ob-opts',icons:!!st.icons})+(st.free?`<div class="row"><input type="text" id="ob-free" aria-label="Otra razón" placeholder="Otra razón, con tus palabras" style="flex:1;min-width:0"><button class="btn soft" data-a="obFree">Agregar</button></div>`:'');}
+  if(st.type==='text')field=`<input type="text" id="ob-in" value="${esc(a[id]||'')}" placeholder="${st.ph}" aria-label="${st.q}">`;
+  if(st.type==='contact')field=`<div class="field"><label for="ob-cn">Nombre</label><input type="text" id="ob-cn" value="${esc(a.cName||'')}" placeholder="Ej.: mi hermana, Lic. Martínez"></div><div class="field"><label for="ob-cp">Teléfono</label><input type="tel" id="ob-cp" value="${esc(a.cPhone||'')}" placeholder="+54 9 11 …"></div>`;
+  if(id==='treat')field+=`<div id="ob-ses" class="stack" ${(FORM.treat||[]).includes('psicologo')?'':'hidden'}><div class="field"><label for="ob-sf">¿Cada cuánto tenés sesión?</label><select id="ob-sf">${[[7,'Semanal'],[14,'Quincenal'],[30,'Mensual']].map(([v,l])=>`<option value="${v}" ${+(a.sesFreq||14)===v?'selected':''}>${l}</option>`).join('')}</select></div><div class="field"><label for="ob-sn">Próxima sesión, si la sabés</label><input type="date" id="ob-sn" value="${esc(a.sesNext||'')}"></div></div>`;
+  const first=OBS.mode==='review'?0:1,tot=OBS.steps.length-1-first,k=OBS.i-first+1;
+  openOv(`<div class="ovhead"><div class="stack-s grow"><span class="eyebrow">${OBS.mode==='review'?'Revisión':'Conocerte'} · ${k} de ${tot}</span><div class="bar-p"><i style="width:${(k/tot*100).toFixed(0)}%"></i></div></div>${x}</div>
+  <div class="stack"><h2 style="font-size:1.5rem">${st.q}</h2>${st.h?`<p class="muted">${st.h}</p>`:''}${field}</div>
+  <div class="footer-btns"><button class="btn primary block" data-a="obNext">Seguir</button><div class="row between">${OBS.i>first?'<button class="btn ghost" data-a="obBack">‹ Atrás</button>':'<span></span>'}${st.req?'':'<button class="btn ghost" data-a="obSkip">Saltear</button>'}</div></div>`);
+  bindChipChange((g,v)=>{
+    if(st.type==='multi'){const none=v==='ninguna'||v==='ninguno';if(none&&FORM[g].includes(v))FORM[g]=[v];else if(!none)FORM[g]=FORM[g].filter(y=>y!=='ninguna'&&y!=='ninguno');$$(`#ov [data-group="${g}"] .chip`).forEach(c=>c.setAttribute('aria-pressed',FORM[g].includes(c.dataset.v)))}
+    if(id==='treat')$('#ob-ses').hidden=!FORM.treat.includes('psicologo');
+  });
+}
+function obCollect(){
+  const id=OBS.steps[OBS.i],st=OBM[id],a=OBS.ans;
+  if(id==='welcome')return true;
+  if(st.type==='text'){a[id]=$('#ob-in').value.trim();return true}
+  if(st.type==='contact'){a.cName=$('#ob-cn').value.trim();a.cPhone=$('#ob-cp').value.trim();return true}
+  const v=FORM[id];
+  if(st.req&&(v==null||(Array.isArray(v)&&!v.length))){toast('Elegí una opción para seguir');return false}
+  a[id]=v;
+  if(id==='treat'){a.sesFreq=+$('#ob-sf').value;a.sesNext=$('#ob-sn').value}
+  return true;
+}
+function obGo(d){
+  OBS.i=clamp(OBS.i+d,0,OBS.steps.length-1);
+  while(OBS.i>0&&OBS.i<OBS.steps.length-1){const st=OBM[OBS.steps[OBS.i]];if(st.skipIf&&st.skipIf(OBS.ans)){OBS.i+=d>0?1:-1;continue}break}
+  renderOb();
+}
+function personalizations(a,lv){
+  const o=[];
+  if(lv==='intenso')o.push('El modo crisis va a estar siempre arriba, y después de cada episodio te voy a proponer entender qué pasó.');
+  const sk=(a.skip||[]).filter(x=>MEAL_ART[x]);
+  if(sk.length)o.push(`Tu plan diario va a priorizar no saltear ${listEs(sk.map(x=>MEAL_ART[x]))}, porque saltear comidas alimenta el antojo de después.`);
+  const t=(a.times||[])[0];
+  if(t)o.push(`Hasta que haya datos, voy a tomar ${TIME_PH[t]} como tu momento de riesgo y te voy a proponer una pausa antes.`);
+  if((a.emo||[]).length)o.push(`Al registrar, van a aparecer primero las emociones que marcaste: ${listEs(a.emo.map(e=>EMO_L[e].toLowerCase()))}.`);
+  if(a.pref==='persona')o.push('En el modo crisis, «Hablar con alguien» va a aparecer primero.');
+  else if(a.pref==='solo')o.push('En el modo crisis, la guía para resolverlo por tu cuenta va a aparecer primero.');
+  if(a.cName||a.cPhone)o.push(`${esc(a.cName||'Tu contacto')} va a quedar a mano en el modo crisis, con tu mensaje ya escrito.`);
+  if((a.treat||[]).includes('psicologo'))o.push('Te voy a ayudar a llegar a cada sesión con un resumen y tus notas.');
+  else o.push('Te voy a recordar, sin presionar, que un profesional en conducta alimentaria puede ayudarte mucho.');
+  if((a.reasons||[]).length)o.push('Tus razones van a aparecer en el modo crisis.');
+  o.push('Con el tiempo, voy a comparar tus datos con lo que me contaste hoy y te voy a mostrar qué cambia.');
+  return o;
+}
+function renderObResult(){
+  const a=OBS.mode==='review'?{...S.profile,...OBS.ans}:OBS.ans,lv=levelOf(a),fl=flagsOf(a),Lv=LEVELS[lv],prev=S.profile;
+  const cmp=OBS.mode==='review'&&prev?`<div class="card"><div class="row" style="gap:20px;align-items:flex-start"><div class="stack-s grow"><span class="eyebrow">Antes · ${dShort(prev.lastReview||prev.date)}</span><b>${LEVELS[prev.level].n}</b><span class="muted small">${esc(FREQ_L[prev.freq]||'–')} por semana · malestar ${prev.distress||'–'}/5</span></div><div class="stack-s grow"><span class="eyebrow">Ahora</span><b>${Lv.n}</b><span class="muted small">${esc(FREQ_L[a.freq]||'–')} por semana · malestar ${a.distress||'–'}/5</span></div></div></div>`:'';
+  openOv(`<div class="ovhead"><span class="eyebrow">${OBS.mode==='review'?'Tu revisión':'Lo que entendí'}</span><button class="x" data-a="close" aria-label="Cerrar">${ic('x')}</button></div>
+  <div class="stack"><h1>${a.name?esc(a.name)+', ':''}${OBS.mode==='review'?'así cambió':'esto es lo que entendí'}</h1>${cmp}
+  <div class="note ${lv==='intenso'?'warn':'accent'}"><p class="eyebrow">Nivel de acompañamiento</p><h2>${Lv.n}</h2><p>${Lv.d}</p></div>
+  ${fl.includes('purga')?'<div class="note warn"><p class="eyebrow">Importante</p><p>Vomitar o usar laxantes después de comer puede afectar tu salud física, por ejemplo los niveles de potasio y el corazón. Es importante que lo hables pronto con un médico o un psicólogo.</p></div>':''}
+  ${fl.includes('riesgo')?'<div class="note warn"><p class="eyebrow">Ahora mismo</p><p>Gracias por contarlo. Si en este momento pensás en hacerte daño, llamá a emergencias de tu país o andá a la guardia más cercana, y contale a alguien de confianza. No tenés que atravesarlo sin ayuda.</p></div>':''}
+  ${OBS.mode==='full'?`<div class="card"><h2>Cómo va a funcionar Pausa para vos</h2><ul class="stack-s" style="margin:0;padding-left:1.1em">${personalizations(a,lv).map(y=>`<li>${y}</li>`).join('')}</ul></div>`:''}
+  <p class="hint">Esto no es un diagnóstico. Podés cambiar tus respuestas cuando quieras en Más → Mi perfil.</p></div>
+  <div class="footer-btns"><button class="btn primary block" data-a="obFinish">${OBS.mode==='review'?'Guardar revisión':'Empezar a usar Pausa'}</button><button class="btn ghost" data-a="obBack">‹ Revisar respuestas</button></div>`);
+}
+function obFinish(){
+  const now=Date.now(),prev=S.profile,a=OBS.mode==='review'?{...prev,...OBS.ans}:OBS.ans;
+  const lv=levelOf(a),fl=flagsOf(a);
+  const hist=[...((prev&&prev.history)||[]),{date:now,freq:a.freq,feat:a.feat||[],distress:a.distress,comp:a.comp||[],level:lv}];
+  S.profile={...a,level:lv,flags:fl,date:(prev&&prev.date)||now,lastReview:now,history:hist,dismissed:(prev&&prev.dismissed)||{}};
+  if(OBS.mode==='full'){
+    if((a.cName||a.cPhone)&&S.settings.contacts.length<3&&!S.settings.contacts.some(c=>c.name===a.cName&&c.phone===a.cPhone))S.settings.contacts.push({name:a.cName,phone:a.cPhone,note:'Persona de confianza'});
+    if((a.treat||[]).includes('psicologo')){if(a.sesFreq)S.settings.session.freq=a.sesFreq;if(a.sesNext)S.settings.session.next=a.sesNext}
+    (a.reasons||[]).forEach(r=>{if(!S.relapse.reasons.includes(r))S.relapse.reasons.push(r)});
+  }
+  save();getPlan(true);scheduleReminder();
+  const msg=OBS.mode==='review'?'Revisión guardada':a.name?`Listo, ${a.name}. Pausa ya está armada para vos.`:'Listo. Pausa ya está armada para vos.';
+  OBS=null;closeOv();toast(msg);
+}
+
 /* Modo crisis */
 let CR=null;
 function openCrisis(){clearTimers();FORM={};CR={step:'choose',path:null,i:0,t0:null,dur:600};renderCrisis()}
@@ -970,8 +1159,7 @@ function renderCrisis(){
   let title='Modo crisis',eb='<span class="eyebrow">Antojo muy fuerte</span>',body='',foot='';
   if(CR.step==='choose'){const cs=S.settings.contacts;
     body=`<p style="font-size:1.15rem">Este impulso va a bajar. Tu único trabajo ahora es ganar 10 minutos.</p>
-    <div class="choice"><button class="btn primary" data-a="crPath" data-v="solo">Lo resuelvo yo<small>Guía de 10 minutos, un paso por vez</small></button>
-    <button class="btn" data-a="crPath" data-v="persona">Hablar con alguien<small>${cs.length?esc(cs.map(c=>c.name).filter(Boolean).join(', ')):'Llamar o mandar tu mensaje ya escrito'}</small></button></div>
+    ${(()=>{const pf=S.profile&&S.profile.pref==='persona',solo=`<button class="btn ${pf?'':'primary'}" data-a="crPath" data-v="solo">Lo resuelvo yo<small>Guía de 10 minutos, un paso por vez</small></button>`,per=`<button class="btn ${pf?'primary':''}" data-a="crPath" data-v="persona">Hablar con alguien<small>${cs.length?esc(cs.map(c=>c.name).filter(Boolean).join(', ')):'Llamar o mandar tu mensaje ya escrito'}</small></button>`;return `<div class="choice">${pf?per+solo:solo+per}</div>`})()}
     <p class="hint">Podés usar las dos: mandá el mensaje y, mientras esperás la respuesta, empezá la guía.</p>`}
   if(CR.step==='persona'){title='Hablar con alguien';body=contactsHTML();foot=`<button class="btn primary block" data-a="crPath" data-v="solo">Empezar la guía mientras espero</button>`}
   if(CR.step==='solo'){
@@ -1073,6 +1261,16 @@ const ACT={
   sosNext:v=>sosNext(v==='skip'),
   sosAgain:()=>{SOS.step=1;renderSOS()},
   sosContact:()=>{const old=$('#ov .sos-contacts');if(old){old.remove();return}const box=document.createElement('div');box.className='sos-contacts';box.innerHTML=contactsHTML();$('#sos-body').before(box)},
+  obStart:()=>openOnboarding('full'),
+  obEdit:()=>openOnboarding('full'),
+  obReview:()=>openOnboarding('review'),
+  obNext:()=>{if(obCollect())obGo(1)},
+  obBack:()=>obGo(-1),
+  obSkip:()=>obGo(1),
+  obFree:()=>{const inp=$('#ob-free'),v=inp.value.trim();if(!v)return;const a=OBS.ans;a._extra=[...(a._extra||[]),v];FORM.reasons=[...(FORM.reasons||[]),v];a.reasons=FORM.reasons;renderOb()},
+  obFinish:()=>obFinish(),
+  obDemo:()=>{seedDemo();save();closeOv();toast('Estos son datos inventados. Cuando quieras, tocá «Empezar con mis datos».')},
+  flagOk:()=>{S.profile.dismissed.flag=Date.now();save();render()},
   crisis:()=>openCrisis(),
   crPath:v=>{if(v==='solo'){CR.path=CR.path==='persona'||CR.path==='ambos'?'ambos':'solo';CR.step='solo';CR.i=0;CR.t0=Date.now()}else{CR.path=CR.path==='solo'?'ambos':'persona';CR.step='persona'}renderCrisis()},
   crNext:()=>{if(CR.i<CRISIS.length-1){CR.i++;renderCrisis()}},
@@ -1107,18 +1305,18 @@ const ACT={
   checkin:v=>openCheckin(v),
   saveCheckin:()=>saveCheckin(),
   planDone:(v,b)=>{const p=getPlan();p.done=b.checked?[...new Set([...p.done,v])]:p.done.filter(x=>x!==v);save();b.closest('.check').classList.toggle('done',b.checked)},
-  clearDemo:()=>{clearDemo();toast('Listo. Empezás de cero.');render(true)},
+  clearDemo:()=>{clearDemo();render(true);if(!S.profile)openOnboarding('full');else toast('Listo. Empezás de cero.')},
   altDel:v=>{S.settings.alts.splice(+v,1);save();render()},
   notify:()=>{if(!('Notification' in window)){toast('Este navegador no permite notificaciones');return}Notification.requestPermission().then(p=>{S.settings.remind=p==='granted';save();scheduleReminder();render();toast(p==='granted'?'Notificaciones activadas':'No se activaron las notificaciones')}).catch(()=>toast('No se pudieron activar'))},
   exp:v=>{expKind=v;$('#exp-box').hidden=false;$('#exp-txt').value=v==='json'?JSON.stringify(S,null,1):toCSV()},
-  copy:()=>{const ta=$('#exp-txt');const sel=()=>{ta.focus();ta.select();toast('Texto seleccionado: copialo con Ctrl+C o el menú')};try{navigator.clipboard.writeText(ta.value).then(()=>toast('Copiado'),sel)}catch(e){sel()}},
-  download:()=>{const blob=new Blob([$('#exp-txt').value],{type:expKind==='json'?'application/json':'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pausa-${dk(Date.now())}.${expKind}`;document.body.appendChild(a);a.click();a.remove()},
+  copy:()=>{const ta=$('#exp-txt');if($('#exp-box')){S.lastBackup=Date.now();save()}const sel=()=>{ta.focus();ta.select();toast('Texto seleccionado: copialo con Ctrl+C o el menú')};try{navigator.clipboard.writeText(ta.value).then(()=>toast('Copiado'),sel)}catch(e){sel()}},
+  download:()=>{S.lastBackup=Date.now();save();const blob=new Blob([$('#exp-txt').value],{type:expKind==='json'?'application/json':'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pausa-${dk(Date.now())}.${expKind}`;document.body.appendChild(a);a.click();a.remove()},
   imp:(v,b)=>{let o;try{o=JSON.parse($('#imp-txt').value)}catch(e){toast('El texto no es un JSON válido');return}if(!o||o.v!==1||!Array.isArray(o.log)){toast('Ese archivo no es un respaldo de Pausa');return}if(!impArmed){impArmed=true;b.textContent='Tocá de nuevo para reemplazar tus datos';return}impArmed=false;S=o;migrate();save();scheduleReminder();toast(`Importados ${S.log.length} registros`);render(true)},
-  wipe:(v,b)=>{if(!wipeArmed){wipeArmed=true;b.textContent='Tocá de nuevo para borrar todo';later(()=>{wipeArmed=false;if(b.isConnected)b.textContent='Borrar todos mis datos'},5000);return}wipeArmed=false;S=blank();save();toast('Datos borrados');V.sub=null;V.tab='inicio';render(true)},
+  wipe:(v,b)=>{if(!wipeArmed){wipeArmed=true;b.textContent='Tocá de nuevo para borrar todo';later(()=>{wipeArmed=false;if(b.isConnected)b.textContent='Borrar todos mis datos'},5000);return}wipeArmed=false;S=blank();save();toast('Datos borrados');V.sub=null;V.tab='inicio';render(true);openOnboarding('full')},
   chip:(v,b)=>{const g=b.dataset.g,grp=b.closest('[data-group]');
     if(grp.dataset.multi){const a=FORM[g]||[];FORM[g]=a.includes(v)?a.filter(x=>x!==v):[...a,v];b.setAttribute('aria-pressed',FORM[g].includes(v))}
     else{FORM[g]=v;$$('.chip',grp).forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===FORM[g]))}
-    FORM.__on&&FORM.__on(g)}
+    FORM.__on&&FORM.__on(g,v)}
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;if(!ACT[a])return;if(b.tagName==='A')return;if(b.type!=='checkbox')e.preventDefault();ACT[a](b.dataset.v,b,e)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ov.hidden)closeOv()});
@@ -1136,8 +1334,15 @@ function scheduleReminder(){
 }
 if(IS_PWA&&'serviceWorker' in navigator&&/^https?:/.test(location.protocol)){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 
-render();
-scheduleReminder();
+async function boot(){
+  await IDB.open();
+  if(!S){const raw=await IDB.get(KEY);if(raw){try{const o=JSON.parse(raw);if(o&&o.v===1&&Array.isArray(o.log))S=o}catch(e){}}}
+  const fresh=!S;if(fresh)S=blank();migrate();save();
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(e){}
+  render();scheduleReminder();
+  if(fresh)openOnboarding('full');
+}
+boot();
 })();
 </script>
 </body>
